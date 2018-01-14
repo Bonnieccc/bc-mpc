@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import gym
 from dynamics import NNDynamicsModel
-from controllers import MPCcontroller, RandomController
+from controllers import MPCcontroller, RandomController, MPCcontroller_BC
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -10,9 +10,17 @@ import os
 import copy
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
-from data_buffer import DataBuffer
+from data_buffer import DataBuffer, DataBuffer_SA
+from behavioral_cloning import BCnetwork
 # from pympler.tracker import SummaryTracker
 
+# ===========================
+# Training parameters for bc
+# ===========================
+TEST_EPOCH = 5000
+BATCH_SIZE_BC = 128
+CHECKPOINT_DIR = 'checkpoints/'
+############################
 
 
 def sample(env, 
@@ -30,7 +38,7 @@ def sample(env,
 
     paths = []
     for i in range(num_paths):
-        print("random data iter ", i)
+        # print("random data iter ", i)
         st = env.reset_model()
         path = {'observations': [], 'actions': [], 'next_observations':[]}
 
@@ -79,6 +87,36 @@ def plot_comparison(env, dyn_model):
     """
     """ YOUR CODE HERE """
     pass
+
+def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, num_rollouts=3):
+
+    # Imitation policy
+    print("Dagge behavioral cloning .... ")
+    path = {'observations': [], 'actions': []}
+    bc_data_buffer.clear()
+    bc_returns = []
+
+    for i in range(num_rollouts):
+        st = env.reset_model()
+        return_ = 0
+
+        for j in range(env_horizon):
+            at = bc_network.predict(np.reshape(st, [1, -1]))[0]
+            expert_at = mpc_controller.get_action(st)
+            nxt_st, r, _, _ = env.step(at)
+            path['observations'].append(st)
+            path['actions'].append(expert_at)
+            return_ += r
+
+        bc_returns.append(return_)
+        print("bc return at rollout: ", i , " " , return_)
+        # add into buffers
+        for n in range(len(path['observations'])):
+            bc_data_buffer.add(path['observations'][n], path['actions'][n])
+
+        bc_network.train(bc_data_buffer, steps=10)
+
+    return bc_returns
 
 def train(env, 
          cost_fn,
@@ -153,6 +191,7 @@ def train(env,
 
     random_controller = RandomController(env)
     data_buffer = DataBuffer()
+    bc_data_buffer = DataBuffer_SA(3000)
 
     # sample path
     print("collecting random data .....  ")
@@ -184,7 +223,7 @@ def train(env,
 
     #========================================================
     # 
-    # Build dynamics model and MPC controllers.
+    # Build dynamics model and MPC controllers and Behavioral cloning network.
     # 
     sess = tf.Session()
 
@@ -205,6 +244,16 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
+    bc_net = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
+
+    mpc_controller_bc = MPCcontroller_BC(env=env, 
+                                   dyn_model=dyn_model, 
+                                   bc_network=bc_net,
+                                   horizon=mpc_horizon, 
+                                   cost_fn=cost_fn, 
+                                   num_simulated_paths=num_simulated_paths)
+
+
 
     #========================================================
     # 
@@ -213,6 +262,18 @@ def train(env,
     sess.__enter__()
     tf.global_variables_initializer().run()
 
+    # init or load checkpoint with saver
+    saver = tf.train.Saver()
+
+    checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
+
+    if checkpoint and checkpoint.model_checkpoint_path:
+        saver.restore(sess, checkpoint.model_checkpoint_path)
+        print("checkpoint loaded:", checkpoint.model_checkpoint_path)
+    else:
+        print("Could not find old checkpoint")
+        if not os.path.exists(CHECKPOINT_DIR):
+          os.mkdir(CHECKPOINT_DIR)  
     #========================================================
     # 
     # Take multiple iterations of onpolicy aggregation at each iteration refitting the dynamics model to current dataset and then taking onpolicy samples and aggregating to the dataset. 
@@ -223,6 +284,10 @@ def train(env,
         """ YOUR CODE HERE """
         print("onpol_iters: ", itr)
         dyn_model.fit(data_buffer)
+
+        saver.save(sess, CHECKPOINT_DIR)
+
+        bc_returns = behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer)
 
         returns = []
         costs = []
@@ -238,17 +303,19 @@ def train(env,
             return_ = 0
 
             for i in range(env_horizon):
-
-                # print("env_horizon: ", i)
+                if render:
+                    env.render()
+                # print("env_horizon: ", i)   
                 at = mpc_controller.get_action(st)
                 # at = random_controller.get_action(st)
+                # at = mpc_controller_bc.get_action(st)
+
                 st_next, env_reward, _, _ = env._step(at)
                 path['observations'].append(st)
                 path['actions'].append(at)
                 path['next_observations'].append(st_next)
                 st = st_next
                 return_ += env_reward
-
 
             # cost & return
             cost =path_cost(cost_fn, path)
@@ -257,9 +324,12 @@ def train(env,
             print("total return: ", return_)
             print("costs: ", cost)
 
-            # add into buffer
+            # add into buffers
             for n in range(len(path['observations'])):
                 data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
+                # bc_data_buffer.add(path['observations'][n], path['actions'][n])
+
+
 
 
 
@@ -267,6 +337,8 @@ def train(env,
         # Statistics for performance of MPC policy using
         # our learned dynamics model
         logz.log_tabular('Iteration', itr)
+        logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
+
         # In terms of cost function which your MPC controller uses to plan
         logz.log_tabular('AverageCost', np.mean(costs))
         logz.log_tabular('StdCost', np.std(costs))

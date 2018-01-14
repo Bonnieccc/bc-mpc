@@ -94,7 +94,7 @@ class NNDynamicsModel():
                                      self.actions_input_placeholder:normalized_sample_action,
                                      self.states_delta:normalized_sample_state_delta})
             
-            print("loss ", i, " : ", loss)
+            # print("loss ", i, " : ", loss)
 
 
     def predict(self, unnormalized_state, unnormalized_action):
