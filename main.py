@@ -17,9 +17,13 @@ from behavioral_cloning import BCnetwork
 # ===========================
 # Training parameters for bc
 # ===========================
+BEHAVIORAL_CLONING = False
+
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
-CHECKPOINT_DIR = 'checkpoints/'
+BC_BUFFER_SIZE = 10000
+LOAD_MODEL = False
+CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 ############################
 
 
@@ -87,36 +91,54 @@ def plot_comparison(env, dyn_model):
     """
     """ YOUR CODE HERE """
     pass
+def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000):
 
-def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, num_rollouts=3):
-
+    DAGGER = True
     # Imitation policy
-    print("Dagge behavioral cloning .... ")
+    print("Behavioral cloning ..... ", " bc buffer size: ", bc_data_buffer.size)
     path = {'observations': [], 'actions': []}
-    bc_data_buffer.clear()
-    bc_returns = []
+    bc_network.train(bc_data_buffer, steps=1)
 
-    for i in range(num_rollouts):
-        st = env.reset_model()
-        return_ = 0
+    for EP in range(Training_epoch):
+        loss = bc_network.train(bc_data_buffer, steps=1)
 
-        for j in range(env_horizon):
-            at = bc_network.predict(np.reshape(st, [1, -1]))[0]
-            expert_at = mpc_controller.get_action(st)
-            nxt_st, r, _, _ = env.step(at)
-            path['observations'].append(st)
-            path['actions'].append(expert_at)
-            return_ += r
+        if EP % 500 == 0:
+            print('epcho: ', EP, ' loss: ', loss)
+            behavioral_cloning_test(sess, env, bc_network, env_horizon)
 
-        bc_returns.append(return_)
-        print("bc return at rollout: ", i , " " , return_)
-        # add into buffers
-        for n in range(len(path['observations'])):
-            bc_data_buffer.add(path['observations'][n], path['actions'][n])
+        # if DAGGER and EP%500 ==0 and EP!=0:
+        #     print("Daggering")
 
-        bc_network.train(bc_data_buffer, steps=10)
+        #     st = env.reset_model()
+        #     return_ = 0
 
-    return bc_returns
+        #     for j in range(env_horizon):
+        #         at = bc_network.predict(np.reshape(st, [1, -1]))[0]
+        #         expert_at = mpc_controller.get_action(st)
+        #         nxt_st, r, _, _ = env.step(at)
+        #         path['observations'].append(st)
+        #         path['actions'].append(expert_at)
+        #         st = nxt_st
+        #         return_ += r
+
+        #     # add into buffers
+        #     for n in range(len(path['observations'])):
+        #         bc_data_buffer.add(path['observations'][n], path['actions'][n])
+        #     print("now training data size: ", bc_data_buffer.size)
+
+def behavioral_cloning_test(sess, env, bc_network, env_horizon):
+    print('---------- bc testing ---------')
+    st = env.reset_model()
+    returns = 0
+
+    for j in range(env_horizon):
+        at = bc_network.predict(np.reshape(st, [1, -1]))[0]
+        # print(at)
+        nxt_st, r, _, _ = env.step(at)
+        st = nxt_st
+        returns += r
+
+    print("return: ", returns)
 
 def train(env, 
          cost_fn,
@@ -191,7 +213,7 @@ def train(env,
 
     random_controller = RandomController(env)
     data_buffer = DataBuffer()
-    bc_data_buffer = DataBuffer_SA(3000)
+    bc_data_buffer = DataBuffer_SA(BC_BUFFER_SIZE)
 
     # sample path
     print("collecting random data .....  ")
@@ -254,7 +276,6 @@ def train(env,
                                    num_simulated_paths=num_simulated_paths)
 
 
-
     #========================================================
     # 
     # Tensorflow session building.
@@ -267,7 +288,7 @@ def train(env,
 
     checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
 
-    if checkpoint and checkpoint.model_checkpoint_path:
+    if checkpoint and checkpoint.model_checkpoint_path and LOAD_MODEL:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("checkpoint loaded:", checkpoint.model_checkpoint_path)
     else:
@@ -283,11 +304,10 @@ def train(env,
     for itr in range(onpol_iters):
         """ YOUR CODE HERE """
         print("onpol_iters: ", itr)
+
         dyn_model.fit(data_buffer)
 
         saver.save(sess, CHECKPOINT_DIR)
-
-        bc_returns = behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer)
 
         returns = []
         costs = []
@@ -306,9 +326,15 @@ def train(env,
                 if render:
                     env.render()
                 # print("env_horizon: ", i)   
-                at = mpc_controller.get_action(st)
-                # at = random_controller.get_action(st)
-                # at = mpc_controller_bc.get_action(st)
+
+                if BEHAVIORAL_CLONING:
+                    if bc_data_buffer.size > 2000:
+                        at = mpc_controller_bc.get_action(st)
+                    else:
+                        at = mpc_controller.get_action(st)
+                else:
+                    at = mpc_controller.get_action(st)
+                    # at = random_controller.get_action(st)
 
                 st_next, env_reward, _, _ = env._step(at)
                 path['observations'].append(st)
@@ -318,7 +344,7 @@ def train(env,
                 return_ += env_reward
 
             # cost & return
-            cost =path_cost(cost_fn, path)
+            cost = path_cost(cost_fn, path)
             costs.append(cost)
             returns.append(return_)
             print("total return: ", return_)
@@ -327,8 +353,10 @@ def train(env,
             # add into buffers
             for n in range(len(path['observations'])):
                 data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
-                # bc_data_buffer.add(path['observations'][n], path['actions'][n])
+                bc_data_buffer.add(path['observations'][n], path['actions'][n])
 
+        if BEHAVIORAL_CLONING:
+            behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
 
 
 
@@ -337,7 +365,7 @@ def train(env,
         # Statistics for performance of MPC policy using
         # our learned dynamics model
         logz.log_tabular('Iteration', itr)
-        logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
+        # logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
 
         # In terms of cost function which your MPC controller uses to plan
         logz.log_tabular('AverageCost', np.mean(costs))

@@ -129,21 +129,30 @@ class MPCcontroller_BC(Controller):
         states = np.tile(state, [self.num_simulated_paths, 1])
 
         states_paths_all = []
+        action_paths = []
         states_paths_all.append(states)
 
         for i in range(self.horizon):
             actions = self.bc_network.predict(states)
+            actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
             states = self.dyn_model.predict(states, actions)
 
             # states = self.dyn_model.predict(states, action_paths[i, :, :])
             states_paths_all.append(states)
+            action_paths.append(actions)
 
         # evaluate trajectories
         states_paths_all = np.asarray(states_paths_all)
+        action_paths = np.asarray(action_paths)
+
 
         # batch cost function
         states_paths = states_paths_all[:-1, :, :]
         states_nxt_paths = states_paths_all[1:, :, :]
+
+        # print("action_paths: ", action_paths.shape)
+        # print("states_paths: ", states_paths.shape)
+        # print("states_nxt_paths: ", states_nxt_paths.shape)
 
         costs = trajectory_cost_fn(self.cost_fn, states_paths, action_paths, states_nxt_paths)
 
