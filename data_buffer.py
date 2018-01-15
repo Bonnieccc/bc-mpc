@@ -25,6 +25,32 @@ class DataBuffer(object):
         sample_state_delta = sample_state_next_t - sample_state
         return sample_state, sample_action, sample_state_next_t, sample_state_delta
 
+class DataBuffer_withreward(object):
+    def __init__(self):
+        self.state_t = []
+        self.action_t = []
+        self.reward_t = []
+        self.state_next_t = []
+        self.size = 0
+
+    def add(self, state_t, action_t, reward_t, state_next_t):
+        self.state_t.append(state_t)
+        self.action_t.append(action_t)
+        self.reward_t.append(reward_t)
+        self.state_next_t.append(state_next_t)
+        self.size = len(self.state_t)
+
+    def sample(self, num):
+        # Sample N
+        assert (num <= self.size)
+        sample_index = np.random.choice(self.size, num)
+        sample_state = np.asarray([self.state_t[i] for i in sample_index])
+        sample_action = np.asarray([self.action_t[i] for i in sample_index])
+        sample_reward = np.asarray([self.reward_t[i] for i in sample_index])
+        sample_state_next_t = np.asarray([self.state_next_t[i] for i in sample_index])
+        sample_state_delta = sample_state_next_t - sample_state
+        return sample_state, sample_action, sample_reward, sample_state_next_t, sample_state_delta
+
 
 class DataBuffer_SA(object):
     """docstring for ClassName"""
