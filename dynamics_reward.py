@@ -2,20 +2,25 @@ import tensorflow as tf
 import numpy as np
 
 # Predefined function to build a feedforward neural network
-def build_mlp(input_placeholder, 
-              output_size,
+def build_network(states_action_input, 
+              state_size,
               scope, 
-              n_layers=2, 
-              size=500, 
               activation=tf.tanh,
-              output_activation=None
               ):
-    out = input_placeholder
+
     with tf.variable_scope(scope):
-        for _ in range(n_layers):
-            out = tf.layers.dense(out, size, activation=activation)
-        out = tf.layers.dense(out, output_size, activation=output_activation)
-    return out
+        # share layer
+        share = tf.layers.dense(states_action_input, 500, activation=activation)
+
+        # state delta prediction
+        state_delta_predict = tf.layers.dense(share, 500, activation=activation)
+        state_delta_predict = tf.layers.dense(state_delta_predict, state_size, activation=None)
+
+        # reward prediction
+        reward_predict = tf.layers.dense(share, 500, activation=activation)
+        reward_predict = tf.layers.dense(reward_predict, 1, activation=None)
+
+    return state_delta_predict, reward_predict
 
 class NNDynamicsModel():
     def __init__(self, 
@@ -43,23 +48,10 @@ class NNDynamicsModel():
 
         # print("input_placeholder: ", self.input_placeholder)
         self.scope = "NNDynamicsModel"
-        self.state_delta_predict = build_mlp(self.states_action_input, 
+        self.state_delta_predict, self.reward_predict = build_network(self.states_action_input, 
                                    self.env.observation_space.shape[0], 
                                    self.scope, 
-                                   n_layers=n_layers, 
-                                   size=size,
-                                   activation=activation,
-                                   output_activation=output_activation)
-
-        scope = "NNRewardFunc"
-
-        self.reward_predict = build_mlp(self.states_action_input, 
-                                   1, 
-                                   scope, 
-                                   n_layers=n_layers, 
-                                   size=256,
-                                   activation=activation,
-                                   output_activation=None)
+                                   activation=activation)
         # data normalization
         self.mean_obs, self.std_obs, self.mean_action, self.std_action, self.mean_reward, self.std_reward, self.mean_deltas, self.std_deltas = normalization
 

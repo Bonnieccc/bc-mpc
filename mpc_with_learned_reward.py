@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import gym
 from dynamics_reward import NNDynamicsModel
-from controllers import MPCcontroller_learned_reward, RandomController, MPCcontroller_BC
+from controllers import MPCcontroller_learned_reward, RandomController, MPCcontroller_BC_learned_reward
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -105,7 +105,7 @@ def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_da
 
         if EP % 500 == 0:
             print('epcho: ', EP, ' loss: ', loss)
-            behavioral_cloning_test(sess, env, bc_network, env_horizon)
+            returns_all = behavioral_cloning_test(sess, env, bc_network, env_horizon)
 
         # if DAGGER and EP%500 ==0 and EP!=0:
         #     print("Daggering")
@@ -126,20 +126,26 @@ def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_da
         #     for n in range(len(path['observations'])):
         #         bc_data_buffer.add(path['observations'][n], path['actions'][n])
         #     print("now training data size: ", bc_data_buffer.size)
+    return returns_all
 
-def behavioral_cloning_test(sess, env, bc_network, env_horizon):
+def behavioral_cloning_test(sess, env, bc_network, env_horizon, eval_times=10):
     print('---------- bc testing ---------')
-    st = env.reset_model()
-    returns = 0
+    returns_all = []
+    for i in range(10):
+        returns = 0
+        st = env.reset_model()
 
-    for j in range(env_horizon):
-        at = bc_network.predict(np.reshape(st, [1, -1]))[0]
-        # print(at)
-        nxt_st, r, _, _ = env.step(at)
-        st = nxt_st
-        returns += r
+        for j in range(env_horizon):
+            at = bc_network.predict(np.reshape(st, [1, -1]))[0]
+            # print(at)
+            nxt_st, r, _, _ = env.step(at)
+            st = nxt_st
+            returns += r
+        returns_all.append(returns)
 
-    print("return: ", returns)
+    print("return: ", np.mean(returns_all))
+    return returns_all
+
 
 def train(env, 
          cost_fn,
@@ -269,7 +275,8 @@ def train(env,
 
     bc_net = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
 
-    mpc_controller_bc = MPCcontroller_BC(env=env, 
+
+    mpc_controller_bc = MPCcontroller_BC_learned_reward(env=env, 
                                    dyn_model=dyn_model, 
                                    bc_network=bc_net,
                                    horizon=mpc_horizon, 
@@ -320,7 +327,7 @@ def train(env,
             print("data buffer size: ", data_buffer.size)
 
             st = env.reset_model()
-            path = {'observations': [], 'actions': [], 'next_observations':[]}
+            path = {'observations': [], 'actions': [], 'rewards': [], 'next_observations':[]}
             # tracker.print_diff()
 
             return_ = 0
@@ -342,6 +349,8 @@ def train(env,
                 st_next, env_reward, _, _ = env._step(at)
                 path['observations'].append(st)
                 path['actions'].append(at)
+                path['rewards'].append(env_reward)
+
                 path['next_observations'].append(st_next)
                 st = st_next
                 return_ += env_reward
@@ -355,11 +364,11 @@ def train(env,
 
             # add into buffers
             for n in range(len(path['observations'])):
-                data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
+                data_buffer.add(path['observations'][n], path['actions'][n], path['rewards'][n], path['next_observations'][n])
                 bc_data_buffer.add(path['observations'][n], path['actions'][n])
 
         if BEHAVIORAL_CLONING:
-            behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
+            bc_returns = behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
 
 
 
@@ -368,13 +377,12 @@ def train(env,
         # Statistics for performance of MPC policy using
         # our learned dynamics model
         logz.log_tabular('Iteration', itr)
-        # logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
 
         # In terms of cost function which your MPC controller uses to plan
-        # logz.log_tabular('AverageCost', np.mean(costs))
-        # logz.log_tabular('StdCost', np.std(costs))
-        # logz.log_tabular('MinimumCost', np.min(costs))
-        # logz.log_tabular('MaximumCost', np.max(costs))
+        logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
+        logz.log_tabular('Std_BC_Return', np.std(bc_returns))
+        logz.log_tabular('Minimum_BC_Return', np.min(bc_returns))
+        logz.log_tabular('Maximum_BC_Return', np.max(bc_returns))
         # In terms of true environment reward of your rolled out trajectory using the MPC controller
         logz.log_tabular('AverageReturn', np.mean(returns))
         logz.log_tabular('StdReturn', np.std(returns))
