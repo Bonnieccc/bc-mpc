@@ -325,7 +325,7 @@ def train(env,
             for i in range(env_horizon):
                 if render:
                     env.render()
-                # print("env_horizon: ", i)   
+                print("env_horizon: ", i)   
 
                 if BEHAVIORAL_CLONING:
                     if bc_data_buffer.size > 2000:

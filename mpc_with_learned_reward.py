@@ -17,7 +17,7 @@ from behavioral_cloning import BCnetwork
 # ===========================
 # Training parameters for bc
 # ===========================
-BEHAVIORAL_CLONING = False
+BEHAVIORAL_CLONING = True
 
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
@@ -379,10 +379,11 @@ def train(env,
         logz.log_tabular('Iteration', itr)
 
         # In terms of cost function which your MPC controller uses to plan
-        logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
-        logz.log_tabular('Std_BC_Return', np.std(bc_returns))
-        logz.log_tabular('Minimum_BC_Return', np.min(bc_returns))
-        logz.log_tabular('Maximum_BC_Return', np.max(bc_returns))
+        if BEHAVIORAL_CLONING:
+            logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
+            logz.log_tabular('Std_BC_Return', np.std(bc_returns))
+            logz.log_tabular('Minimum_BC_Return', np.min(bc_returns))
+            logz.log_tabular('Maximum_BC_Return', np.max(bc_returns))
         # In terms of true environment reward of your rolled out trajectory using the MPC controller
         logz.log_tabular('AverageReturn', np.mean(returns))
         logz.log_tabular('StdReturn', np.std(returns))
@@ -406,7 +407,7 @@ def main():
     parser.add_argument('--dyn_iters', '-nd', type=int, default=260)
     parser.add_argument('--batch_size', '-b', type=int, default=512)
     # Data collection
-    parser.add_argument('--random_paths', '-r', type=int, default=10)
+    parser.add_argument('--random_paths', '-r', type=int, default=20)
     parser.add_argument('--onpol_paths', '-d', type=int, default=10)
     parser.add_argument('--simulated_paths', '-sp', type=int, default=1000)
     parser.add_argument('--ep_len', '-ep', type=int, default=1000)
@@ -424,7 +425,9 @@ def main():
     # Make data directory if it does not already exist
     if not(os.path.exists('data')):
         os.makedirs('data')
-    logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
+    # logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
+    logdir = args.exp_name
+
     logdir = os.path.join('data', logdir)
     if not(os.path.exists(logdir)):
         os.makedirs(logdir)

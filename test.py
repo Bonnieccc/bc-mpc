@@ -1,5 +1,6 @@
 import numpy as np
 
-a = np.random.rand(1000, 6) * 2 -1
-
-print(a)
+a = np.zeros([3, 5])
+b = a[None]
+print(a.shape)
+print(b.shape)
