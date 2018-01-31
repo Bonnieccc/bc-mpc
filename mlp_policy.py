@@ -1,5 +1,5 @@
 from baselines.common.mpi_running_mean_std import RunningMeanStd
-# import baselines.common.tf_util as U
+import baselines.common.tf_util as U
 import tensorflow as tf
 import gym
 from baselines.common.distributions import make_pdtype
@@ -55,14 +55,14 @@ class MlpPolicy(object):
             obz = tf.clip_by_value((ob - ob_rms.mean) / ob_rms.std, -5.0, 5.0)
             last_out = obz
             for i in range(self.num_hid_layers):
-                last_out = tf.nn.tanh(tf.layers.dense(last_out, self.hid_size, name="fc%i"%(i+1), kernel_initializer=tf.truncated_normal_initializer(stddev=1.0)))
-            vpred = tf.layers.dense(last_out, 1, name='final', kernel_initializer=tf.truncated_normal_initializer(stddev=1.0))[:,0]
+                last_out = tf.nn.tanh(tf.layers.dense(last_out, self.hid_size, name="fc%i"%(i+1), kernel_initializer=U.normc_initializer(1.0)))
+            vpred = tf.layers.dense(last_out, 1, name='final', kernel_initializer=U.normc_initializer(1.0))[:,0]
 
         with tf.variable_scope(scope + '/pol'):
             last_out = obz
             for i in range(self.num_hid_layers):
-                last_out = tf.nn.tanh(tf.layers.dense(last_out, self.hid_size, name='fc%i'%(i+1), kernel_initializer=tf.truncated_normal_initializer(stddev=1.0)))
-            mean = tf.layers.dense(last_out, self.pdtype.param_shape()[0]//2, name='final', kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                last_out = tf.nn.tanh(tf.layers.dense(last_out, self.hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(1.0)))
+            mean = tf.layers.dense(last_out, self.pdtype.param_shape()[0]//2, name='final', kernel_initializer=U.normc_initializer(0.01))
             logstd = tf.get_variable(name="logstd", shape=[1, self.pdtype.param_shape()[0]//2], initializer=tf.zeros_initializer())
             pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
 
@@ -97,18 +97,6 @@ class MlpPolicy(object):
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
         var_list = var_list = self.get_trainable_variables()
-
-        # # U version
-
-        # lossandgrad = U.function([self.ob, self.ac, self.atarg, self.ret, self.lrmult], losses + [U.flatgrad(total_loss, var_list)])
-        # adam = MpiAdam(var_list, epsilon=adam_epsilon)
-
-        # assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
-        #     for (oldv, newv) in zipsame(self.get_old_variables(), self.get_variables())])
-        # compute_losses = U.function([self.ob, self.ac, self.atarg, self.ret, self.lrmult], losses)
-
-
-        # TF version
 
         return total_loss, loss_names, losses, var_list
 
