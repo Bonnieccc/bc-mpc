@@ -10,12 +10,8 @@ from baselines.common import Dataset, explained_variance, fmt_row, zipsame
 
 class MlpPolicy(object):
     recurrent = False
-    def __init__(self, name, *args, **kwargs):
-        with tf.variable_scope(name):
-            self._init(*args, **kwargs)
-            self.scope = tf.get_variable_scope().name
 
-    def _init(self, sess, env, hid_size, num_hid_layers, clip_param, entcoeff, adam_epsilon,  gaussian_fixed_var=True):
+    def __init__(self, sess, env, hid_size, num_hid_layers, clip_param, entcoeff, adam_epsilon,  gaussian_fixed_var=True):
         self.sess = sess
         self.ob_space = env.observation_space
         self.ac_space = env.action_space
@@ -25,11 +21,12 @@ class MlpPolicy(object):
         self.num_hid_layers = num_hid_layers 
 
         self.pdtype = pdtype = make_pdtype(self.ac_space)
-        self.ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[None] + list(self.ob_space.shape))
+        # self.ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[None] + list(self.ob_space.shape))
+        self.ob = tf.placeholder(name="ob", dtype=tf.float32, shape=[None] + list(self.ob_space.shape))
         self.ac = self.pdtype.sample_placeholder([None])
 
         with tf.variable_scope('pi'):
-            self.ob_rms, self.vpred, self.pd, self._act = self.build_network(sess, 'pi', self.ob)
+            self.ob_rms, self.vpred, self.pd, self.sample_ac = self.build_network(sess, 'pi', self.ob)
             self.pi_scope = tf.get_variable_scope().name
 
         with tf.variable_scope('old_pi'):
@@ -42,8 +39,13 @@ class MlpPolicy(object):
         self.ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
         self.lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
 
-        self.adam, self.compute_losses, self.assign_old_eq_new, self.loss_names, self.lossandgrad = self.setup_ppo_loss(clip_param, entcoeff, adam_epsilon)
+        self.total_loss, self.loss_names, self.losses, self.var_list = self.setup_ppo_loss(clip_param, entcoeff, adam_epsilon)
 
+        self.gradients = tf.gradients(self.total_loss, self.var_list)
+        self.assign_old_eq_new_op = [tf.assign(oldv, newv) for (oldv, newv) in zipsame(self.get_old_variables(), self.get_variables())]
+
+        self.learning_rate = tf.placeholder(dtype=tf.float32)
+        self.update_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.total_loss, var_list=self.var_list)
 
     def build_network(self, sess, scope, ob):
 
@@ -68,11 +70,9 @@ class MlpPolicy(object):
 
         pd = self.pdtype.pdfromflat(pdparam)
 
-        stochastic = tf.placeholder(dtype=tf.bool, shape=())
-        ac = U.switch(stochastic, pd.sample(), pd.mode())
-        _act = U.function([stochastic, ob], [ac, vpred])
+        sample_ac = pd.sample(),
 
-        return ob_rms, vpred, pd, _act
+        return ob_rms, vpred, pd, sample_ac
 
     def setup_ppo_loss(self, clip_param, entcoeff, adam_epsilon):
 
@@ -92,27 +92,71 @@ class MlpPolicy(object):
         surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * self.atarg #
         pol_surr = - tf.reduce_mean(tf.minimum(surr1, surr2)) # PPO's pessimistic surrogate (L^CLIP)
         vf_loss = tf.reduce_mean(tf.square(self.vpred - self.ret))
-        total_loss = pol_surr + pol_entpen + vf_loss
+
+        total_loss = total_loss = pol_surr + pol_entpen + vf_loss
         losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
-        var_list = self.get_trainable_variables()
-        lossandgrad = U.function([self.ob, self.ac, self.atarg, self.ret, self.lrmult], losses + [U.flatgrad(total_loss, var_list)])
-        adam = MpiAdam(var_list, epsilon=adam_epsilon)
+        var_list = var_list = self.get_trainable_variables()
 
-        assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
-            for (oldv, newv) in zipsame(self.get_old_variables(), self.get_variables())])
-        compute_losses = U.function([self.ob, self.ac, self.atarg, self.ret, self.lrmult], losses)
+        # # U version
 
-        return adam, compute_losses, assign_old_eq_new, loss_names, lossandgrad
+        # lossandgrad = U.function([self.ob, self.ac, self.atarg, self.ret, self.lrmult], losses + [U.flatgrad(total_loss, var_list)])
+        # adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
-    def act_old(self, stochastic, ob):
-        ac1, vpred1 =  self._act(stochastic, ob[None])
-        return ac1[0], vpred1[0]
+        # assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
+        #     for (oldv, newv) in zipsame(self.get_old_variables(), self.get_variables())])
+        # compute_losses = U.function([self.ob, self.ac, self.atarg, self.ret, self.lrmult], losses)
+
+
+        # TF version
+
+        return total_loss, loss_names, losses, var_list
+
+    def compute_losses(self, ob, ac, atarg, ret, cur_lrmult):
+        return self.sess.run([self.losses],
+                 feed_dict={self.ob: ob,
+                            self.ac: ac, 
+                            self.atarg: atarg,
+                            self.ret: ret,
+                            self.lrmult:cur_lrmult, 
+                            })
+
+    def lossandupdate(self, ob, ac, atarg, ret, cur_lrmult, learning_rate):
+         losses, _ = self.sess.run([self.losses, self.update_op],
+                 feed_dict={self.ob: ob,
+                            self.ac: ac, 
+                            self.atarg: atarg,
+                            self.ret: ret,
+                            self.lrmult:cur_lrmult, 
+                            self.learning_rate:learning_rate, 
+                            })
+         return losses
+
+    def get_grad(self, ob, ac, atarg, ret, cur_lrmult):
+        return self.sess.run([self.gradients],
+                 feed_dict={self.ob: ob,
+                            self.ac: ac, 
+                            self.atarg: atarg,
+                            self.ret: ret,
+                            self.lrmult:cur_lrmult, 
+                            })
+
+    def optimize(self, lr, ob, ac, atarg, ret):
+        self.sess.run(self.update_op, feed_dict={self.learning_rate:lr,
+                                                 self.ob: ob,
+                                                 self.ac: ac, 
+                                                 self.atarg: atarg,
+                                                 self.ret: ret})
+
+
+    def assign_old_eq_new(self):
+        self.sess.run([self.assign_old_eq_new_op])
+
 
     def act(self, stochastic, ob):
         
-        ac1, vpred1 =  self.sess.run([self.pd.sample(), self.vpred], feed_dict={self.ob: ob[None]})
+        ac1, vpred1 =  self.sess.run([self.sample_ac, self.vpred], feed_dict={self.ob: ob[None]})
 
         return ac1[0], vpred1[0]
 

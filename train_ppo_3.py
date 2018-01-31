@@ -20,7 +20,7 @@ from data_buffer import  DataBuffer_general
 
 from baselines.common import Dataset, explained_variance, fmt_row, zipsame
 from baselines import logger
-import baselines.common.tf_util as U
+# import baselines.common.tf_util as U
 import tensorflow as tf, numpy as np
 import time
 import copy
@@ -34,8 +34,7 @@ from mpi4py import MPI
 from collections import deque
 
 def policy_fn(name, sess, env, clip_param, entcoeff, adam_epsilon):
-    return MlpPolicy(name=name, sess=sess, env=env,
-        hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, adam_epsilon=adam_epsilon)
+    return 
 
 
 def flatten_lists(listoflists):
@@ -62,10 +61,9 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
 
     while True:
         prevac = ac
-        # ac = pi.predict(ob)
-        # vpred = pi.baseline_predict(ob)
-        # ac, vpred = pi.act(stochastic, ob)
-        ac, vpred = pi.act_old(stochastic, ob)
+
+        ac, vpred = pi.act(stochastic, ob)
+        # ac, vpred = pi.act_old(stochastic, ob)
 
         # print("ac, vpred", ac, vpred)
         # Slight weirdness here because we need value function at time T
@@ -220,13 +218,12 @@ def train_PG(exp_name='',
     callback=None # you can do anything in the callback, since it takes locals(), globals()
     adam_epsilon=1e-5
 
-    policy_nn = policy_fn("pi", sess,  env, clip_param, entcoeff, adam_epsilon) # Construct network for new policy
+    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, adam_epsilon=adam_epsilon)
 
-    # pi, adam, policy_nn.compute_losses, policy_nn.assign_old_eq_new, policy_nn.loss_names, policy_nn.lossandgrad = setup_ppo_loss(env, sess, policy_fn, clip_param, entcoeff, adam_epsilon)
-    # tf.global_variables_initializer().run() #pylint: disable=E1101
+    tf.global_variables_initializer().run() #pylint: disable=E1101
 
-    U.initialize()
-    policy_nn.adam.sync()
+    # U.initialize()
+    # policy_nn.adam.sync()
 
 
     # Prepare for rollouts
@@ -280,8 +277,10 @@ def train_PG(exp_name='',
             for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
                 sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = data_buffer_ppo.sample(optim_batchsize)
 
-                *newlosses, g = policy_nn.lossandgrad(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult)
-                policy_nn.adam.update(g, optim_stepsize * cur_lrmult)
+                newlosses = policy_nn.lossandupdate(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                # policy_nn.adam.update(g, optim_stepsize * cur_lrmult)
+                # policy_nn.optimize(optim_stepsize * cur_lrmult)
+
                 losses.append(newlosses)
 
             # logger.log(fmt_row(13, np.mean(losses, axis=0)))
