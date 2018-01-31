@@ -243,9 +243,9 @@ class policy_network_ppo(object):
 
 
         net = sy_ob_no
-        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=U.normc_initializer(1.0)))
-        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=U.normc_initializer(1.0)))
-        sy_mean_na = tf.layers.dense(net, self.ac_dim, activation=None, kernel_initializer=U.normc_initializer(0.01))
+        net = tf.layers.dense(net, 64, activation=tf.nn.tanh, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0))
+        net = tf.layers.dense(net, 64, activation=tf.nn.tanh, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0))
+        sy_mean_na = tf.layers.dense(net, self.ac_dim, activation=None, kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
         sy_logstd = tf.Variable(tf.zeros([self.ac_dim]), name='action/logstd', dtype=tf.float32) # logstd should just be a trainable variable, not a network output.
         # construct distribution
@@ -257,10 +257,10 @@ class policy_network_ppo(object):
 
     def build_value_network(self, sy_ob_no, scope):
 
-        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=U.normc_initializer(1.0)))
-        net = tf.nn.tanh(tf.layers.dense(net, 64, kernel_initializer=U.normc_initializer(1.0)))
+        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0)))
+        net = tf.nn.tanh(tf.layers.dense(net, 64, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0)))
 
-        baseline_prediction= tf.layers.dense(net, 1, kernel_initializer=U.normc_initializer(1.0))
+        baseline_prediction= tf.layers.dense(net, 1, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0))
 
         return baseline_prediction
 

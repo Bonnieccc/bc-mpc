@@ -10,7 +10,6 @@ import copy
 from multiprocessing import Process
 
 from policy_net import policy_network, policy_network_ppo
-# from value_net import value_network
 from controllers import RandomController
 
 from cheetah_env import HalfCheetahEnvNew
@@ -18,9 +17,28 @@ from utils import denormalize, normalize, pathlength, reward_to_q
 from data_buffer import  DataBuffer_general
 
 
-from baselines.common import Dataset
+from baselines.common import Dataset, explained_variance, fmt_row, zipsame
+from baselines import logger
+# import baselines.common.tf_util as U
+import tensorflow as tf, numpy as np
+import time
+import copy
+from baselines.common.mpi_adam import MpiAdam
+from baselines.common.mpi_moments import mpi_moments
 
-def traj_segment_generator(pi, env, horizon):
+
+from mlp_policy import MlpPolicy
+
+from mpi4py import MPI
+from collections import deque
+
+def policy_fn(name, sess, env, clip_param, entcoeff, adam_epsilon):
+    return 
+
+def flatten_lists(listoflists):
+    return [el for list_ in listoflists for el in list_]
+
+def traj_segment_generator(pi, env, horizon, stochastic=True):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     ob = env.reset()
@@ -41,8 +59,9 @@ def traj_segment_generator(pi, env, horizon):
 
     while True:
         prevac = ac
-        ac = pi.predict(ob)
-        vpred = pi.baseline_predict(ob)
+
+        ac, vpred = pi.act(stochastic, ob)
+
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
@@ -161,6 +180,7 @@ def train_PG(exp_name='',
     print("Max_path_length ", max_path_length)
 
 
+
     #========================================================================================#
     # Tensorflow Engineering: Config, Session, Variable initialization
     #========================================================================================#
@@ -170,79 +190,120 @@ def train_PG(exp_name='',
 
     sess = tf.Session(config=tf_config)
 
-    policy_nn = policy_network_ppo(sess, ob_dim, ac_dim, discrete, n_layers, size, learning_rate)
-
-    # if nn_baseline:
-    #     value_nn = value_network(sess, ob_dim, n_layers, size, learning_rate)
-
     sess.__enter__() # equivalent to `with sess:`
+
+    data_buffer_ppo = DataBuffer_general(10000, 4)
+
+
+    timesteps_per_actorbatch=2048
+    max_timesteps = 10000000
+    clip_param=0.2
+    entcoeff=0.0
+    optim_epochs=10
+    optim_stepsize=3e-4 
+    optim_batchsize=64
+    gamma=0.99
+    lam=0.95
+    schedule='linear'
+    callback=None # you can do anything in the callback, since it takes locals(), globals()
+    adam_epsilon=1e-5
+
+    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, adam_epsilon=adam_epsilon)
 
     tf.global_variables_initializer().run() #pylint: disable=E1101
 
 
+    # Prepare for rollouts
+    # ----------------------------------------
+    seg_gen = traj_segment_generator(policy_nn, env, timesteps_per_actorbatch)
+    print("seg_gen finished")
 
 
-    data_buffer_ppo = DataBuffer_general(10000, 4)
-    seg_gen = traj_segment_generator(policy_nn, env, min_timesteps_per_batch)
+    episodes_so_far = 0
+    timesteps_so_far = 0
+    iters_so_far = 0
+    tstart = time.time()
+    lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
+    rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
+
+    while True:
+
+        if callback: callback(locals(), globals())
+        if max_timesteps and timesteps_so_far >= max_timesteps:
+            break
+
+        cur_lrmult = 1.0
 
 
-    #========================================================================================#
-    # Training Loop
-    #========================================================================================#
+        logger.log("********** Iteration %i ************"%iters_so_far)
 
-    total_timesteps = 0
-
-    for itr in range(n_iter):
-        print("********** Iteration %i ************"%itr)
-
-
+        data_buffer_ppo.clear()
         seg = seg_gen.__next__()
-        add_vtarg_and_adv(seg, gamma, 0.95)
+        add_vtarg_and_adv(seg, gamma, lam)
 
-        #====================================================================================#
-        #                           ----------SECTION 4----------
-        # Performing the Policy Update
-        #====================================================================================#
-
-
+        # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
-
+        vpredbefore = seg["vpred"] # predicted value function before udpate
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
-        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=False)
+        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not policy_nn.recurrent)
 
         for n in range(len(ob)):
             data_buffer_ppo.add((ob[n], ac[n], atarg[n], tdlamret[n]))
-
         print("data_buffer_ppo", data_buffer_ppo.size)
 
+        optim_batchsize = optim_batchsize or ob.shape[0]
 
-        optim_batchsize = 64
-        optim_epochs = 10
+        if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
 
-        # print("sample_ob_no", sample_ob_no.shape)
-        # print("sample_ac_na", sample_ac_na.shape)
-        # print("sample_adv_n", sample_adv_n.shape)
+        policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
+        
+        # logger.log("Optimizing...")
+        # logger.log(fmt_row(13, policy_nn.loss_names))
 
-        # print("sample_ob_no", sample_ob_no)
-        # print("sample_ac_na", sample_ac_na)
-        # print("sample_adv_n", sample_adv_n)
-
-        # policy_nn.fit(ob_no, ac_na, adv_n)
-        policy_nn.assign_old_eq_new()
-
-
+        # Here we do a bunch of optimization epochs over the data
         for _ in range(optim_epochs):
-            for batch in d.iterate_once(optim_batchsize):
-                policy_nn.fit(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"])
+            losses = [] # list of tuples, each of which gives the loss for a minibatch
+            for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
+                sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = data_buffer_ppo.sample(optim_batchsize)
 
-        # for i in range(optim_epochs*32):
-        #     sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = data_buffer_ppo.sample(optim_batchsize)
+                newlosses = policy_nn.lossandupdate(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                losses.append(newlosses)
 
-        #     policy_nn.fit(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target)
+            # logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
 
 
-        data_buffer_ppo.clear()
+        # logger.log("Evaluating losses...")
+        # losses = []
+        # # for batch in d.iterate_once(optim_batchsize):
+        # sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = data_buffer_ppo.sample(optim_batchsize)
+
+        # newlosses = policy_nn.compute_losses(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult)
+        # losses.append(newlosses)
+        # meanlosses,_,_ = mpi_moments(losses, axis=0)
+        # logger.log(fmt_row(13, meanlosses))
+        # for (lossval, name) in zipsame(meanlosses, policy_nn.loss_names):
+        #     logger.record_tabular("loss_"+name, lossval)
+        # logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
+        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
+        listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
+        lens, rews = map(flatten_lists, zip(*listoflrpairs))
+        lenbuffer.extend(lens)
+        rewbuffer.extend(rews)
+        # logger.record_tabular("EpLenMean", np.mean(lenbuffer))
+        # logger.record_tabular("EpRewMean", np.mean(rewbuffer))
+        # logger.record_tabular("EpThisIter", len(lens))
+        episodes_so_far += len(lens)
+        timesteps_so_far += sum(lens)
+        iters_so_far += 1
+        # logger.record_tabular("EpisodesSoFar", episodes_so_far)
+        # logger.record_tabular("TimestepsSoFar", timesteps_so_far)
+        # logger.record_tabular("TimeElapsed", time.time() - tstart)
+        # if MPI.COMM_WORLD.Get_rank()==0:
+        #     logger.dump_tabular()
+
+
+
 
         # Log diagnostics
         # returns = [path["reward"].sum() for path in paths]
@@ -252,7 +313,7 @@ def train_PG(exp_name='',
         returns =  seg["ep_rets"]
 
         logz.log_tabular("Time", time.time() - start)
-        logz.log_tabular("Iteration", itr)
+        logz.log_tabular("Iteration", iters_so_far)
         logz.log_tabular("AverageReturn", np.mean(returns))
         logz.log_tabular("StdReturn", np.std(returns))
         logz.log_tabular("MaxReturn", np.max(returns))
@@ -260,7 +321,7 @@ def train_PG(exp_name='',
         logz.log_tabular("EpLenMean", np.mean(ep_lengths))
         logz.log_tabular("EpLenStd", np.std(ep_lengths))
         # logz.log_tabular("TimestepsThisBatch", timesteps_this_batch)
-        logz.log_tabular("TimestepsSoFar", total_timesteps)
+        logz.log_tabular("TimestepsSoFar", timesteps_so_far)
         logz.dump_tabular()
         logz.pickle_tf_vars()
 
@@ -272,7 +333,7 @@ def main():
     parser.add_argument('--exp_name', type=str, default='vpg')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--discount', type=float, default=0.99)
-    parser.add_argument('--n_iter', '-n', type=int, default=100)
+    parser.add_argument('--n_iter', '-n', type=int, default=1000)
     parser.add_argument('--batch_size', '-b', type=int, default=2048)
     parser.add_argument('--ep_len', '-ep', type=float, default=1000)
     parser.add_argument('--learning_rate', '-lr', type=float, default=3e-4)
