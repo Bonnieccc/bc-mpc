@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+import baselines.common.tf_util as U
+
 from distributions import make_pdtype
 
 from utils import build_mlp
@@ -194,14 +196,15 @@ class policy_network_ppo(object):
 
         # build policy network
         self.pd = self.build_policy_network(self.sy_ob_no)
+        self.baseline_prediction = self.build_value_network(self.sy_ob_no, scope='value')
 
         self.network_params = tf.trainable_variables()
 
         self.pd_old = self.build_policy_network(self.sy_ob_no)
+        _ = self.build_value_network(self.sy_ob_no, scope='old_value')
 
         # output
         self.sy_sampled_ac = self.pd.sample()
-
 
         # Op for sync old network with online network weights
         self.old_network_params = tf.trainable_variables()[len(self.network_params):]
@@ -235,13 +238,14 @@ class policy_network_ppo(object):
         sy_logprob_n = self.pd.logp(ac)
         self.loss = -tf.reduce_mean(sy_logprob_n * adv) # Loss function that we'll differentiate to get the policy gradient.
         self.loss += value_loss
+
     def build_policy_network(self, sy_ob_no):
 
 
         net = sy_ob_no
-        net = tf.layers.dense(net, 64, activation=tf.tanh, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0))
-        net = tf.layers.dense(net, 64, activation=tf.tanh, kernel_initializer=tf.truncated_normal_initializer(stddev=1.0))
-        sy_mean_na = tf.layers.dense(net, self.ac_dim, activation=None, kernel_initializer=tf.truncated_normal_initializer(stddev=0.1))
+        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=U.normc_initializer(1.0)))
+        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=U.normc_initializer(1.0)))
+        sy_mean_na = tf.layers.dense(net, self.ac_dim, activation=None, kernel_initializer=U.normc_initializer(0.01))
 
         sy_logstd = tf.Variable(tf.zeros([self.ac_dim]), name='action/logstd', dtype=tf.float32) # logstd should just be a trainable variable, not a network output.
         # construct distribution
@@ -251,17 +255,20 @@ class policy_network_ppo(object):
 
         return pd
 
-    def build_value_network(self, sy_ob_no):
-        baseline_prediction = tf.squeeze(build_mlp(
-                                sy_ob_no, 
-                                1, 
-                                "value_network",
-                                n_layers=self.n_layers,
-                                size=self.size))
+    def build_value_network(self, sy_ob_no, scope):
+
+        net = tf.nn.tanh(tf.layers.dense(sy_ob_no, 64, kernel_initializer=U.normc_initializer(1.0)))
+        net = tf.nn.tanh(tf.layers.dense(net, 64, kernel_initializer=U.normc_initializer(1.0)))
+
+        baseline_prediction= tf.layers.dense(net, 1, kernel_initializer=U.normc_initializer(1.0))
+
         return baseline_prediction
 
     def predict(self, ob):
         return self.sess.run(self.sy_sampled_ac, feed_dict={self.sy_ob_no : ob[None]})
+
+    def baseline_predict(self, ob):
+        return self.sess.run(self.baseline_prediction, feed_dict={self.sy_ob_no :ob[None]})
 
     def fit(self, ob_no, ac_na, adv_n, baseline_target_n):
         
