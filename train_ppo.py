@@ -232,8 +232,12 @@ def train_PG(exp_name='',
         if max_timesteps and timesteps_so_far >= max_timesteps:
             break
 
-        cur_lrmult = 1.0
-
+        if schedule == 'constant':
+            cur_lrmult = 1.0
+        elif schedule == 'linear':
+            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+        else:
+            raise NotImplementedError
 
         logger.log("********** Iteration %i ************"%iters_so_far)
 
