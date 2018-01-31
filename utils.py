@@ -37,7 +37,51 @@ def build_mlp(
 def pathlength(path):
     return len(path["reward"])
 
+def reward_to_q(paths, gamma, reward_to_go=False):
+    # # Other's Code
+    # q_n = []
+    # for path in paths:
+    #     q = 0
+    #     q_path = []
 
+    #     # Dynamic programming over reversed path
+    #     for rew in reversed(path["reward"]):
+    #         q = rew + gamma * q
+    #         q_path.append(q)
+    #     q_path.reverse()
+
+    #     # Append these q values
+    #     if not reward_to_go:
+    #         q_path = [q_path[0]] * len(q_path)
+    #     q_n.extend(q_path)
+
+
+    # YOUR_CODE_HERE
+    if reward_to_go:
+        q_n = []
+        for path in paths:
+            for t in range(len(path["reward"])):
+                t_ = 0
+                q = 0
+                while t_ < len(path["reward"]):
+                    if t_ >= t:
+                        q += gamma**(t_-t) * path["reward"][t_]
+                    t_ += 1
+                q_n.append(q)
+        q_n = np.asarray(q_n)
+
+    else:
+        q_n = []
+        for path in paths:
+            for t in range(len(path["reward"])):
+                t_ = 0
+                q = 0
+                while t_ < len(path["reward"]):
+                    q += gamma**t_ * path["reward"][t_]
+                    t_ += 1
+                q_n.append(q)
+        q_n = np.asarray(q_n)
+    return q_n
 # Model based parts
 
 def sample(env, 
