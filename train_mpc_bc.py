@@ -422,6 +422,7 @@ def main():
     if args.env_name is "HalfCheetah-v1":
         env = HalfCheetahEnvNew()
         cost_fn = cheetah_cost_fn
+        
     train(env=env, 
                  cost_fn=cost_fn,
                  logdir=logdir,

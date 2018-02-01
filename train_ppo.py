@@ -7,6 +7,8 @@ import os
 import time
 import inspect
 import copy
+import roboschool
+
 from multiprocessing import Process
 
 from policy_net import policy_network, policy_network_ppo
@@ -66,7 +68,7 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
         # before returning segment [0, T-1] so we get the correct
         # terminal value
         if t > 0 and t % horizon == 0:
-            print("ep_lens ", ep_lens)
+            # print("ep_lens ", ep_lens)
             sec = copy.deepcopy({"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
             "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
             "ep_rets" : ep_rets, "ep_lens" : ep_lens})
@@ -82,8 +84,7 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
         news[i] = new
         acs[i] = ac
         prevacs[i] = prevac
-
-        ob, rew, done, _ = env.step(ac)
+        ob, rew, done, _ = env.step(ac[0])
         rews[i] = rew
 
         cur_ep_ret += rew
@@ -91,7 +92,7 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
         # print('cur_ep_len', cur_ep_len)
         # print('done', done)
         # print('new', new)
-
+        done = False
         if done or (t%1000 == 0 and t>0):
             ob = env.reset()
             new = True 
@@ -161,7 +162,8 @@ def train_PG(exp_name='',
 
     # Make the gym environment
     env = HalfCheetahEnvNew()
-    
+    # env = gym.make("RoboschoolHalfCheetah-v1")
+
     # Is this env continuous, or discrete?
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
 
@@ -260,7 +262,7 @@ def train_PG(exp_name='',
         if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
 
         policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
-        
+
         # logger.log("Optimizing...")
         # logger.log(fmt_row(13, policy_nn.loss_names))
 

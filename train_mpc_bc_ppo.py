@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 import gym
-from dynamics_reward import NNDynamicsModel
-from controllers import MPCcontroller_learned_reward, RandomController, MPCcontroller_BC_learned_reward
+from dynamics import NNDynamicsModel
+from controllers import MPCcontroller, RandomController, MPCcontroller_BC
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -10,7 +10,7 @@ import os
 import copy
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
-from data_buffer import DataBuffer_withreward, DataBuffer_SA
+from data_buffer import DataBuffer, DataBuffer_SA
 from behavioral_cloning import BCnetwork
 # from pympler.tracker import SummaryTracker
 
@@ -44,14 +44,14 @@ def sample(env,
     for i in range(num_paths):
         # print("random data iter ", i)
         st = env.reset_model()
-        path = {'observations': [], 'actions': [], 'rewards': [], 'next_observations':[]}
+        path = {'observations': [], 'actions': [], 'next_observations':[]}
 
         for t in range(horizon):
            at = controller.get_action(st)
-           st_next, r_t, _, _ = env.step(at)
+           st_next, _, _, _ = env.step(at)
+
            path['observations'].append(st)
            path['actions'].append(at)
-           path['rewards'].append(r_t)
            path['next_observations'].append(st_next)
            st = st_next
 
@@ -71,19 +71,18 @@ def compute_normalization(data):
 
     """ YOUR CODE HERE """
     # Nomalization statistics
-    sample_state, sample_action, sample_reward, sample_nxt_state, sample_state_delta = data.sample(data.size)
-
+    sample_state, sample_action, sample_nxt_state, sample_state_delta = data.sample(data.size)
     mean_obs = np.mean(sample_state, axis=0)
     mean_action = np.mean(sample_action, axis=0)
-    mean_reward = np.mean(sample_reward, axis=0)
+    mean_nxt_state = np.mean(sample_nxt_state, axis=0)
     mean_deltas = np.mean(sample_state_delta, axis=0)
 
     std_obs = np.std(sample_state, axis=0)
     std_action = np.std(sample_action, axis=0)
-    std_reward = np.std(sample_reward, axis=0)
+    std_nxt_state = np.std(sample_nxt_state, axis=0)
     std_deltas = np.std(sample_state_delta, axis=0)
 
-    return [mean_obs, std_obs, mean_action, std_action, mean_reward, std_reward, mean_deltas, std_deltas]
+    return [mean_obs, std_obs, mean_action, std_action, mean_nxt_state, std_nxt_state, mean_deltas, std_deltas]
 
 
 def plot_comparison(env, dyn_model):
@@ -92,7 +91,6 @@ def plot_comparison(env, dyn_model):
     """
     """ YOUR CODE HERE """
     pass
-    
 def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000):
 
     DAGGER = True
@@ -106,7 +104,7 @@ def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_da
 
         if EP % 500 == 0:
             print('epcho: ', EP, ' loss: ', loss)
-            returns_all = behavioral_cloning_test(sess, env, bc_network, env_horizon)
+            behavioral_cloning_test(sess, env, bc_network, env_horizon)
 
         # if DAGGER and EP%500 ==0 and EP!=0:
         #     print("Daggering")
@@ -127,26 +125,20 @@ def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_da
         #     for n in range(len(path['observations'])):
         #         bc_data_buffer.add(path['observations'][n], path['actions'][n])
         #     print("now training data size: ", bc_data_buffer.size)
-    return returns_all
 
-def behavioral_cloning_test(sess, env, bc_network, env_horizon, eval_times=10):
+def behavioral_cloning_test(sess, env, bc_network, env_horizon):
     print('---------- bc testing ---------')
-    returns_all = []
-    for i in range(10):
-        returns = 0
-        st = env.reset_model()
+    st = env.reset_model()
+    returns = 0
 
-        for j in range(env_horizon):
-            at = bc_network.predict(np.reshape(st, [1, -1]))[0]
-            # print(at)
-            nxt_st, r, _, _ = env.step(at)
-            st = nxt_st
-            returns += r
-        returns_all.append(returns)
+    for j in range(env_horizon):
+        at = bc_network.predict(np.reshape(st, [1, -1]))[0]
+        # print(at)
+        nxt_st, r, _, _ = env.step(at)
+        st = nxt_st
+        returns += r
 
-    print("return: ", np.mean(returns_all))
-    return returns_all
-
+    print("return: ", returns)
 
 def train(env, 
          cost_fn,
@@ -220,7 +212,7 @@ def train(env,
 
 
     random_controller = RandomController(env)
-    data_buffer = DataBuffer_withreward()
+    data_buffer = DataBuffer()
     bc_data_buffer = DataBuffer_SA(BC_BUFFER_SIZE)
 
     # sample path
@@ -235,7 +227,7 @@ def train(env,
     # add into buffer
     for path in paths:
         for n in range(len(path['observations'])):
-            data_buffer.add(path['observations'][n], path['actions'][n], path['rewards'][n], path['next_observations'][n])
+            data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
 
 
 
@@ -268,7 +260,7 @@ def train(env,
                                 learning_rate=learning_rate,
                                 sess=sess)
 
-    mpc_controller = MPCcontroller_learned_reward(env=env, 
+    mpc_controller = MPCcontroller(env=env, 
                                    dyn_model=dyn_model, 
                                    horizon=mpc_horizon, 
                                    cost_fn=cost_fn, 
@@ -276,8 +268,7 @@ def train(env,
 
     bc_net = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
 
-
-    mpc_controller_bc = MPCcontroller_BC_learned_reward(env=env, 
+    mpc_controller_bc = MPCcontroller_BC(env=env, 
                                    dyn_model=dyn_model, 
                                    bc_network=bc_net,
                                    horizon=mpc_horizon, 
@@ -292,19 +283,18 @@ def train(env,
     sess.__enter__()
     tf.global_variables_initializer().run()
 
-    if LOAD_MODEL:
-        # init or load checkpoint with saver
-        saver = tf.train.Saver()
+    # init or load checkpoint with saver
+    saver = tf.train.Saver()
 
-        checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
+    checkpoint = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
 
-        if checkpoint and checkpoint.model_checkpoint_path and LOAD_MODEL:
-            saver.restore(sess, checkpoint.model_checkpoint_path)
-            print("checkpoint loaded:", checkpoint.model_checkpoint_path)
-        else:
-            print("Could not find old checkpoint")
-            if not os.path.exists(CHECKPOINT_DIR):
-              os.mkdir(CHECKPOINT_DIR)  
+    if checkpoint and checkpoint.model_checkpoint_path and LOAD_MODEL:
+        saver.restore(sess, checkpoint.model_checkpoint_path)
+        print("checkpoint loaded:", checkpoint.model_checkpoint_path)
+    else:
+        print("Could not find old checkpoint")
+        if not os.path.exists(CHECKPOINT_DIR):
+          os.mkdir(CHECKPOINT_DIR)  
     #========================================================
     # 
     # Take multiple iterations of onpolicy aggregation at each iteration refitting the dynamics model to current dataset and then taking onpolicy samples and aggregating to the dataset. 
@@ -317,8 +307,7 @@ def train(env,
 
         dyn_model.fit(data_buffer)
 
-        if LOAD_MODEL:
-            saver.save(sess, CHECKPOINT_DIR)
+        saver.save(sess, CHECKPOINT_DIR)
 
         returns = []
         costs = []
@@ -328,7 +317,7 @@ def train(env,
             print("data buffer size: ", data_buffer.size)
 
             st = env.reset_model()
-            path = {'observations': [], 'actions': [], 'rewards': [], 'next_observations':[]}
+            path = {'observations': [], 'actions': [], 'next_observations':[]}
             # tracker.print_diff()
 
             return_ = 0
@@ -336,7 +325,7 @@ def train(env,
             for i in range(env_horizon):
                 if render:
                     env.render()
-                # print("env_horizon: ", i)   
+                print("env_horizon: ", i)   
 
                 if BEHAVIORAL_CLONING:
                     if bc_data_buffer.size > 2000:
@@ -350,26 +339,24 @@ def train(env,
                 st_next, env_reward, _, _ = env._step(at)
                 path['observations'].append(st)
                 path['actions'].append(at)
-                path['rewards'].append(env_reward)
-
                 path['next_observations'].append(st_next)
                 st = st_next
                 return_ += env_reward
 
             # cost & return
-            # cost = path_cost(cost_fn, path)
-            # costs.append(cost)
+            cost = path_cost(cost_fn, path)
+            costs.append(cost)
             returns.append(return_)
             print("total return: ", return_)
-            # print("costs: ", cost)
+            print("costs: ", cost)
 
             # add into buffers
             for n in range(len(path['observations'])):
-                data_buffer.add(path['observations'][n], path['actions'][n], path['rewards'][n], path['next_observations'][n])
+                data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
                 bc_data_buffer.add(path['observations'][n], path['actions'][n])
 
         if BEHAVIORAL_CLONING:
-            bc_returns = behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
+            behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
 
 
 
@@ -378,13 +365,13 @@ def train(env,
         # Statistics for performance of MPC policy using
         # our learned dynamics model
         logz.log_tabular('Iteration', itr)
+        # logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
 
         # In terms of cost function which your MPC controller uses to plan
-        if BEHAVIORAL_CLONING:
-            logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
-            logz.log_tabular('Std_BC_Return', np.std(bc_returns))
-            logz.log_tabular('Minimum_BC_Return', np.min(bc_returns))
-            logz.log_tabular('Maximum_BC_Return', np.max(bc_returns))
+        logz.log_tabular('AverageCost', np.mean(costs))
+        logz.log_tabular('StdCost', np.std(costs))
+        logz.log_tabular('MinimumCost', np.min(costs))
+        logz.log_tabular('MaximumCost', np.max(costs))
         # In terms of true environment reward of your rolled out trajectory using the MPC controller
         logz.log_tabular('AverageReturn', np.mean(returns))
         logz.log_tabular('StdReturn', np.std(returns))
@@ -408,7 +395,7 @@ def main():
     parser.add_argument('--dyn_iters', '-nd', type=int, default=260)
     parser.add_argument('--batch_size', '-b', type=int, default=512)
     # Data collection
-    parser.add_argument('--random_paths', '-r', type=int, default=20)
+    parser.add_argument('--random_paths', '-r', type=int, default=10)
     parser.add_argument('--onpol_paths', '-d', type=int, default=10)
     parser.add_argument('--simulated_paths', '-sp', type=int, default=1000)
     parser.add_argument('--ep_len', '-ep', type=int, default=1000)
@@ -426,9 +413,7 @@ def main():
     # Make data directory if it does not already exist
     if not(os.path.exists('data')):
         os.makedirs('data')
-    # logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
-    logdir = args.exp_name
-
+    logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
     logdir = os.path.join('data', logdir)
     if not(os.path.exists(logdir)):
         os.makedirs(logdir)
@@ -437,6 +422,7 @@ def main():
     if args.env_name is "HalfCheetah-v1":
         env = HalfCheetahEnvNew()
         cost_fn = cheetah_cost_fn
+        
     train(env=env, 
                  cost_fn=cost_fn,
                  logdir=logdir,
