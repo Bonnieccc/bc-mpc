@@ -34,8 +34,6 @@ from mlp_policy import MlpPolicy
 from mpi4py import MPI
 from collections import deque
 
-def policy_fn(name, sess, env, clip_param, entcoeff, adam_epsilon):
-    return 
 
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
@@ -218,7 +216,6 @@ def train_PG(exp_name='',
     # Prepare for rollouts
     # ----------------------------------------
     seg_gen = traj_segment_generator(policy_nn, env, timesteps_per_actorbatch)
-    print("seg_gen finished")
 
 
     episodes_so_far = 0
@@ -251,7 +248,7 @@ def train_PG(exp_name='',
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
         vpredbefore = seg["vpred"] # predicted value function before udpate
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
-        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not policy_nn.recurrent)
+        # d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not policy_nn.recurrent)
 
         for n in range(len(ob)):
             data_buffer_ppo.add((ob[n], ac[n], atarg[n], tdlamret[n]))

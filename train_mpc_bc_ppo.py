@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import gym
 from dynamics import NNDynamicsModel
-from controllers import MPCcontroller, RandomController, MPCcontroller_BC
+from controllers import MPCcontroller, RandomController, MPCcontroller_BC_PPO
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -10,14 +10,25 @@ import os
 import copy
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
-from data_buffer import DataBuffer, DataBuffer_SA
+from data_buffer import DataBuffer, DataBuffer_general 
 from behavioral_cloning import BCnetwork
 # from pympler.tracker import SummaryTracker
+from utils import denormalize, normalize, pathlength, sample, compute_normalization, path_cost
+from ppo_bc_policy import MlpPolicy_bc
+
+
+
+from mpi4py import MPI
+from collections import deque
+from baselines.common import Dataset, explained_variance, fmt_row, zipsame
+from baselines import logger
+
+
 
 # ===========================
 # Training parameters for bc
 # ===========================
-BEHAVIORAL_CLONING = False
+BEHAVIORAL_CLONING = True
 
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
@@ -26,85 +37,113 @@ LOAD_MODEL = False
 CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 ############################
 
+def flatten_lists(listoflists):
+    return [el for list_ in listoflists for el in list_]
 
-def sample(env, 
-           controller, 
-           num_paths=10, 
-           horizon=1000, 
-           render=False,
-           verbose=False):
+def traj_segment_generator(pi, mpc_controller, env, horizon):
+    t = 0
+    ac = env.action_space.sample() # not used, just so we have the datatype
+    ob = env.reset()
+    new = False # marks if we're on first timestep of an episode
+
+    cur_ep_ret = 0 # return in current episode
+    cur_ep_len = 0 # len of current episode
+    ep_rets = [] # returns of completed episodes in this segment
+    ep_lens = [] # lengths of ...
+
+    # Initialize history arrays
+    obs = np.array([ob for _ in range(horizon)])
+    nxt_obs = np.array([ob for _ in range(horizon)])
+
+    rews = np.zeros(horizon, 'float32')
+    vpreds = np.zeros(horizon, 'float32')
+    news = np.zeros(horizon, 'int32')
+    acs = np.array([ac for _ in range(horizon)])
+    prevacs = acs.copy()
+
+    while True:
+        prevac = ac
+
+        # print("ob", ob.shape)
+        # print("ac", ac.shape)
+
+        _, vpred = pi.act(ob)
+        ac = mpc_controller.get_action(ob)
+
+
+        i = t % horizon
+        obs[i] = ob
+        vpreds[i] = vpred
+        news[i] = new
+        acs[i] = ac
+        prevacs[i] = prevac
+        ob, rew, done, _ = env.step(ac[0])
+        nxt_obs[i] = ob
+        rews[i] = rew
+
+        cur_ep_ret += rew
+        cur_ep_len += 1
+
+
+        done = False
+        if done or (t%horizon == 0 and t>0):
+            ob = env.reset()
+            new = True 
+
+        if new:
+            ep_rets.append(cur_ep_ret)
+            ep_lens.append(cur_ep_len)
+            cur_ep_ret = 0
+            cur_ep_len = 0
+            new = False # marks if we're on first timestep of an episode
+
+        # Slight weirdness here because we need value function at time T
+        # before returning segment [0, T-1] so we get the correct
+        # terminal value
+        if t > 0 and t % horizon == 0:
+            # print("ep_lens ", ep_lens)
+            sec = copy.deepcopy({"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
+            "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+            "ep_rets" : ep_rets, "ep_lens" : ep_lens})
+            yield sec
+            # Be careful!!! if you change the downstream algorithm to aggregate
+            # several of these batches, then be sure to do a deepcopy
+            ep_rets = []
+            ep_lens = []
+
+        t += 1
+
+def add_vtarg_and_adv(seg, gamma=0.99, lam=0.95):
     """
-        Write a sampler function which takes in an environment, a controller (either random or the MPC controller), 
-        and returns rollouts by running on the env. 
-        Each path can have elements for observations, next_observations, rewards, returns, actions, etc.
+    Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
     """
-    """ YOUR CODE HERE """
-
-    paths = []
-    for i in range(num_paths):
-        # print("random data iter ", i)
-        st = env.reset_model()
-        path = {'observations': [], 'actions': [], 'next_observations':[]}
-
-        for t in range(horizon):
-           at = controller.get_action(st)
-           st_next, _, _, _ = env.step(at)
-
-           path['observations'].append(st)
-           path['actions'].append(at)
-           path['next_observations'].append(st_next)
-           st = st_next
-
-        paths.append(path)
-
-    return paths
-
-# Utility to compute cost a path for a given cost function
-def path_cost(cost_fn, path):
-    return trajectory_cost_fn(cost_fn, path['observations'], path['actions'], path['next_observations'])
-
-def compute_normalization(data):
-    """
-    Write a function to take in a dataset and compute the means, and stds.
-    Return 6 elements: mean of s_t, std of s_t, mean of (s_t+1 - s_t), std of (s_t+1 - s_t), mean of actions, std of actions
-    """
-
-    """ YOUR CODE HERE """
-    # Nomalization statistics
-    sample_state, sample_action, sample_nxt_state, sample_state_delta = data.sample(data.size)
-    mean_obs = np.mean(sample_state, axis=0)
-    mean_action = np.mean(sample_action, axis=0)
-    mean_nxt_state = np.mean(sample_nxt_state, axis=0)
-    mean_deltas = np.mean(sample_state_delta, axis=0)
-
-    std_obs = np.std(sample_state, axis=0)
-    std_action = np.std(sample_action, axis=0)
-    std_nxt_state = np.std(sample_nxt_state, axis=0)
-    std_deltas = np.std(sample_state_delta, axis=0)
-
-    return [mean_obs, std_obs, mean_action, std_action, mean_nxt_state, std_nxt_state, mean_deltas, std_deltas]
+    new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
+    vpred = np.append(seg["vpred"], seg["nextvpred"])
+    T = len(seg["rew"])
+    seg["adv"] = gaelam = np.empty(T, 'float32')
+    rew = seg["rew"]
+    lastgaelam = 0
+    for t in reversed(range(T)):
+        nonterminal = 1-new[t+1]
+        delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
+        gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
+    seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 
-def plot_comparison(env, dyn_model):
-    """
-    Write a function to generate plots comparing the behavior of the model predictions for each element of the state to the actual ground truth, using randomly sampled actions. 
-    """
-    """ YOUR CODE HERE """
-    pass
-def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000):
+def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_ppo_data_buffer, Training_epoch=1000):
 
     DAGGER = True
     # Imitation policy
-    print("Behavioral cloning ..... ", " bc buffer size: ", bc_data_buffer.size)
+    print("Behavioral cloning ..... ", " bc buffer size: ", bc_ppo_data_buffer.size)
     path = {'observations': [], 'actions': []}
-    bc_network.train(bc_data_buffer, steps=1)
+    bc_network.train(bc_ppo_data_buffer, steps=1)
 
     for EP in range(Training_epoch):
-        loss = bc_network.train(bc_data_buffer, steps=1)
+        loss = bc_network.train(bc_ppo_data_buffer, steps=1)
 
         if EP % 500 == 0:
             print('epcho: ', EP, ' loss: ', loss)
-            behavioral_cloning_test(sess, env, bc_network, env_horizon)
+            behavioral_cloning_eval(sess, env, bc_network, env_horizon)
 
         # if DAGGER and EP%500 ==0 and EP!=0:
         #     print("Daggering")
@@ -123,16 +162,16 @@ def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_da
 
         #     # add into buffers
         #     for n in range(len(path['observations'])):
-        #         bc_data_buffer.add(path['observations'][n], path['actions'][n])
-        #     print("now training data size: ", bc_data_buffer.size)
+        #         bc_ppo_data_buffer.add(path['observations'][n], path['actions'][n])
+        #     print("now training data size: ", bc_ppo_data_buffer.size)
 
-def behavioral_cloning_test(sess, env, bc_network, env_horizon):
+def behavioral_cloning_eval(sess, env, bc_ppo_network, env_horizon):
     print('---------- bc testing ---------')
     st = env.reset_model()
     returns = 0
 
     for j in range(env_horizon):
-        at = bc_network.predict(np.reshape(st, [1, -1]))[0]
+        at, vpred = bc_ppo_network.act(st)
         # print(at)
         nxt_st, r, _, _ = env.step(at)
         st = nxt_st
@@ -156,55 +195,24 @@ def train(env,
          n_layers=2,
          size=500,
          activation=tf.nn.relu,
-         output_activation=None
+         output_activation=None,
+         clip_param=0.2 , 
+         entcoeff=0.0,
+         gamma=0.99,
+         lam=0.95,
+         optim_epochs=10,
+         optim_batchsize=64,
+         schedule='linear',
+         optim_stepsize=3e-4,
+         timesteps_per_actorbatch=1000,
+         bc_weight=0.5,
          ):
-    # tracker = SummaryTracker()
 
-    """
-
-    Arguments:
-
-    onpol_iters                 Number of iterations of onpolicy aggregation for the loop to run. 
-
-    dynamics_iters              Number of iterations of training for the dynamics model
-    |_                          which happen per iteration of the aggregation loop.
-
-    batch_size                  Batch size for dynamics training.
-
-    num_paths_random            Number of paths/trajectories/rollouts generated 
-    |                           by a random agent. We use these to train our 
-    |_                          initial dynamics model.
-    
-    num_paths_onpol             Number of paths to collect at each iteration of
-    |_                          aggregation, using the Model Predictive Control policy.
-
-    num_simulated_paths         How many fictitious rollouts the MPC policy
-    |                           should generate each time it is asked for an
-    |_                          action.
-
-    env_horizon                 Number of timesteps in each path.
-
-    mpc_horizon                 The MPC policy generates actions by imagining 
-    |                           fictitious rollouts, and picking the first action
-    |                           of the best fictitious rollout. This argument is
-    |                           how many timesteps should be in each fictitious
-    |_                          rollout.
-
-    n_layers/size/activations   Neural network architecture arguments. 
-
-    """
+    start = time.time()
 
     logz.configure_output_dir(logdir)
 
-    #========================================================
-    # 
-    # First, we need a lot of data generated by a random
-    # agent, with which we'll begin to train our dynamics
-    # model.
 
-    """ YOUR CODE HERE """
-
-    # Print env info
     print("-------- env info --------")
     print("observation_space: ", env.observation_space.shape)
     print("action_space: ", env.action_space.shape)
@@ -212,8 +220,8 @@ def train(env,
 
 
     random_controller = RandomController(env)
-    data_buffer = DataBuffer()
-    bc_data_buffer = DataBuffer_SA(BC_BUFFER_SIZE)
+    model_data_buffer = DataBuffer()
+    bc_ppo_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 6)
 
     # sample path
     print("collecting random data .....  ")
@@ -227,21 +235,12 @@ def train(env,
     # add into buffer
     for path in paths:
         for n in range(len(path['observations'])):
-            data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
+            model_data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
 
 
+    print("data buffer size: ", model_data_buffer.size)
 
-    #========================================================
-    # 
-    # The random data will be used to get statistics (mean
-    # and std) for the observations, actions, and deltas
-    # (where deltas are o_{t+1} - o_t). These will be used
-    # for normalizing inputs and denormalizing outputs
-    # from the dynamics network. 
-    # 
-    print("data buffer size: ", data_buffer.size)
-
-    normalization = compute_normalization(data_buffer)
+    normalization = compute_normalization(model_data_buffer)
 
     #========================================================
     # 
@@ -266,11 +265,11 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    bc_net = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
+    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, bc_weight=bc_weight)
 
-    mpc_controller_bc = MPCcontroller_BC(env=env, 
+    mpc_controller_bc = MPCcontroller_BC_PPO(env=env, 
                                    dyn_model=dyn_model, 
-                                   bc_network=bc_net,
+                                   bc_ppo_network=policy_nn,
                                    horizon=mpc_horizon, 
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
@@ -295,90 +294,90 @@ def train(env,
         print("Could not find old checkpoint")
         if not os.path.exists(CHECKPOINT_DIR):
           os.mkdir(CHECKPOINT_DIR)  
+
     #========================================================
     # 
-    # Take multiple iterations of onpolicy aggregation at each iteration refitting the dynamics model to current dataset and then taking onpolicy samples and aggregating to the dataset. 
-    # Note: You don't need to use a mixing ratio in this assignment for new and old data as described in https://arxiv.org/abs/1708.02596
+    # Prepare for rollouts
     # 
+    seg_gen = traj_segment_generator(policy_nn, mpc_controller_bc, env, env_horizon)
+
+    episodes_so_far = 0
+    timesteps_so_far = 0
+    iters_so_far = 0
+    tstart = time.time()
+    lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
+    rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
+    max_timesteps = num_paths_onpol * env_horizon
 
     for itr in range(onpol_iters):
-        """ YOUR CODE HERE """
+
+
+        if schedule == 'constant':
+            cur_lrmult = 1.0
+        elif schedule == 'linear':
+            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+
         print("onpol_iters: ", itr)
+        dyn_model.fit(model_data_buffer)
+        # saver.save(sess, CHECKPOINT_DIR)
+        behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
-        dyn_model.fit(data_buffer)
-
-        saver.save(sess, CHECKPOINT_DIR)
-
-        returns = []
-        costs = []
-
-        for w in range(num_paths_onpol):
-            print("paths_onpol: ", w, " running.....")
-            print("data buffer size: ", data_buffer.size)
-
-            st = env.reset_model()
-            path = {'observations': [], 'actions': [], 'next_observations':[]}
-            # tracker.print_diff()
-
-            return_ = 0
-
-            for i in range(env_horizon):
-                if render:
-                    env.render()
-                print("env_horizon: ", i)   
-
-                if BEHAVIORAL_CLONING:
-                    if bc_data_buffer.size > 2000:
-                        at = mpc_controller_bc.get_action(st)
-                    else:
-                        at = mpc_controller.get_action(st)
-                else:
-                    at = mpc_controller.get_action(st)
-                    # at = random_controller.get_action(st)
-
-                st_next, env_reward, _, _ = env._step(at)
-                path['observations'].append(st)
-                path['actions'].append(at)
-                path['next_observations'].append(st_next)
-                st = st_next
-                return_ += env_reward
-
-            # cost & return
-            cost = path_cost(cost_fn, path)
-            costs.append(cost)
-            returns.append(return_)
-            print("total return: ", return_)
-            print("costs: ", cost)
-
-            # add into buffers
-            for n in range(len(path['observations'])):
-                data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
-                bc_data_buffer.add(path['observations'][n], path['actions'][n])
-
-        if BEHAVIORAL_CLONING:
-            behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
+        bc_ppo_data_buffer.clear()
+        seg = seg_gen.__next__()
+        add_vtarg_and_adv(seg, gamma, lam)
 
 
+        ob, ac, rew, nxt_ob, atarg, tdlamret = seg["ob"], seg["ac"], seg["rew"], seg["nxt_ob"], seg["adv"], seg["tdlamret"]
+        vpredbefore = seg["vpred"] # predicted value function before udpate
+        atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+
+        for n in range(len(ob)):
+            bc_ppo_data_buffer.add((ob[n], ac[n], rew[n], nxt_ob[n], atarg[n], tdlamret[n]))
+            model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
+
+        print("bc_ppo_data_buffer", bc_ppo_data_buffer.size)
+        print("model_data_buffer", model_data_buffer.size)
+
+        optim_batchsize = optim_batchsize or ob.shape[0]
+
+        if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
+        policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
+        
+        for _ in range(optim_epochs):
+            losses = [] # list of tuples, each of which gives the loss for a minibatch
+            for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
+                sample_ob_no, sample_ac_na, sample_rew, sample_nxt_ob_no, sample_adv_n, sample_b_n_target = bc_ppo_data_buffer.sample(optim_batchsize)
+
+                newlosses = policy_nn.lossandupdate(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                losses.append(newlosses)
+
+        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
 
 
-        # LOGGING
-        # Statistics for performance of MPC policy using
-        # our learned dynamics model
-        logz.log_tabular('Iteration', itr)
-        # logz.log_tabular('Average_BC_Return', np.mean(bc_returns))
+        listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
+        lens, rews = map(flatten_lists, zip(*listoflrpairs))
+        lenbuffer.extend(lens)
+        rewbuffer.extend(rews)
+        episodes_so_far += len(lens)
+        timesteps_so_far += sum(lens)
+        iters_so_far += 1
 
-        # In terms of cost function which your MPC controller uses to plan
-        logz.log_tabular('AverageCost', np.mean(costs))
-        logz.log_tabular('StdCost', np.std(costs))
-        logz.log_tabular('MinimumCost', np.min(costs))
-        logz.log_tabular('MaximumCost', np.max(costs))
-        # In terms of true environment reward of your rolled out trajectory using the MPC controller
-        logz.log_tabular('AverageReturn', np.mean(returns))
-        logz.log_tabular('StdReturn', np.std(returns))
-        logz.log_tabular('MinimumReturn', np.min(returns))
-        logz.log_tabular('MaximumReturn', np.max(returns))
+        ep_lengths = seg["ep_lens"]
+        returns =  seg["ep_rets"]
 
+        logz.log_tabular("Time", time.time() - start)
+        logz.log_tabular("Iteration", iters_so_far)
+        logz.log_tabular("AverageReturn", np.mean(returns))
+        logz.log_tabular("StdReturn", np.std(returns))
+        logz.log_tabular("MaxReturn", np.max(returns))
+        logz.log_tabular("MinReturn", np.min(returns))
+        logz.log_tabular("EpLenMean", np.mean(ep_lengths))
+        logz.log_tabular("EpLenStd", np.std(ep_lengths))
+        # logz.log_tabular("TimestepsThisBatch", timesteps_this_batch)
+        logz.log_tabular("TimestepsSoFar", timesteps_so_far)
         logz.dump_tabular()
+        logz.pickle_tf_vars()
+
 
 def main():
 
@@ -386,17 +385,30 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_name', type=str, default='HalfCheetah-v1')
     # Experiment meta-params
-    parser.add_argument('--exp_name', type=str, default='mb_mpc')
+    parser.add_argument('--exp_name', type=str, default='mpc_bc_ppo')
     parser.add_argument('--seed', type=int, default=3)
     parser.add_argument('--render', action='store_true')
-    # Training args
+    # Model Training args
     parser.add_argument('--learning_rate', '-lr', type=float, default=1e-3)
-    parser.add_argument('--onpol_iters', '-n', type=int, default=15)
+    parser.add_argument('--onpol_iters', '-n', type=int, default=100)
     parser.add_argument('--dyn_iters', '-nd', type=int, default=260)
     parser.add_argument('--batch_size', '-b', type=int, default=512)
+
+    # BC and PPO Training args
+    parser.add_argument('--optim_stepsize', '-olr', type=float, default=3e-4)
+    parser.add_argument('--clip_param', '-cp', type=float, default=0.2)
+    parser.add_argument('--gamma', '-g', type=float, default=0.99)
+    parser.add_argument('--entcoeff', '-ent', type=float, default=0.0)
+    parser.add_argument('--lam', type=float, default=0.95)
+    parser.add_argument('--optim_epochs', type=int, default=100)
+    parser.add_argument('--optim_batchsize', type=int, default=64)
+    parser.add_argument('--schedule', type=str, default='linear')
+    parser.add_argument('--timesteps_per_actorbatch', '-b2', type=int, default=1000)
+    parser.add_argument('--bc_weight', '-bcw', type=float, default=0.5)
+
     # Data collection
     parser.add_argument('--random_paths', '-r', type=int, default=10)
-    parser.add_argument('--onpol_paths', '-d', type=int, default=10)
+    parser.add_argument('--onpol_paths', '-d', type=int, default=1)
     parser.add_argument('--simulated_paths', '-sp', type=int, default=1000)
     parser.add_argument('--ep_len', '-ep', type=int, default=1000)
     # Neural network architecture args
@@ -405,6 +417,7 @@ def main():
     # MPC Controller
     parser.add_argument('--mpc_horizon', '-m', type=int, default=10)
     args = parser.parse_args()
+
 
     # Set seed
     np.random.seed(args.seed)
@@ -440,6 +453,16 @@ def main():
                  size=args.size,
                  activation=tf.nn.relu,
                  output_activation=None,
+                 clip_param = args.clip_param,
+                 entcoeff = args.entcoeff,
+                 gamma = args.gamma,
+                 lam = args.lam,
+                 optim_epochs = args.optim_epochs,
+                 optim_batchsize = args.optim_batchsize,
+                 schedule = args.schedule,
+                 optim_stepsize = args.optim_stepsize,
+                 timesteps_per_actorbatch = args.timesteps_per_actorbatch,
+                 bc_weight=args.bc_weight,
                  )
 
 if __name__ == "__main__":

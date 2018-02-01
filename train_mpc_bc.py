@@ -17,7 +17,7 @@ from behavioral_cloning import BCnetwork
 # ===========================
 # Training parameters for bc
 # ===========================
-BEHAVIORAL_CLONING = False
+BEHAVIORAL_CLONING = True
 
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
@@ -325,7 +325,7 @@ def train(env,
             for i in range(env_horizon):
                 if render:
                     env.render()
-                print("env_horizon: ", i)   
+                # print("env_horizon: ", i)   
 
                 if BEHAVIORAL_CLONING:
                     if bc_data_buffer.size > 2000:
@@ -396,7 +396,7 @@ def main():
     parser.add_argument('--batch_size', '-b', type=int, default=512)
     # Data collection
     parser.add_argument('--random_paths', '-r', type=int, default=10)
-    parser.add_argument('--onpol_paths', '-d', type=int, default=10)
+    parser.add_argument('--onpol_paths', '-d', type=int, default=1)
     parser.add_argument('--simulated_paths', '-sp', type=int, default=1000)
     parser.add_argument('--ep_len', '-ep', type=int, default=1000)
     # Neural network architecture args
