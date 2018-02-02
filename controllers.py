@@ -345,7 +345,7 @@ class MPCcontroller_BC_PPO(Controller):
         states_paths_all.append(states)
 
         for i in range(self.horizon):
-            actions, _ = self.bc_ppo_network.act(states)
+            actions, _ = self.bc_ppo_network.act(states, stochastic=False)
             actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
             states = self.dyn_model.predict(states, actions)
 

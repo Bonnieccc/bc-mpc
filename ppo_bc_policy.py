@@ -2,6 +2,7 @@ from baselines.common.mpi_running_mean_std import RunningMeanStd
 from baselines.common import Dataset, explained_variance, fmt_row, zipsame
 from baselines.common.distributions import make_pdtype
 
+import tflearn
 import baselines.common.tf_util as U
 import tensorflow as tf
 import gym
@@ -161,13 +162,16 @@ class MlpPolicy_bc(object):
         self.sess.run([self.assign_old_eq_new_op])
 
 
-    def act(self, ob):
+    def act(self, ob, stochastic=False):
         
         if ob.ndim == 1:
         # ensure dim is [?, s_dim]
             ob = ob[None]
 
-        ac1, vpred1 =  self.sess.run([self.sample_ac, self.vpred], feed_dict={self.ob: ob})
+        if stochastic:
+            ac1, vpred1 =  self.sess.run([self.sample_ac, self.vpred], feed_dict={self.ob: ob})
+        else:
+            ac1, vpred1 =  self.sess.run([self.ac_mean, self.vpred], feed_dict={self.ob: ob})
 
         return ac1, vpred1
 
