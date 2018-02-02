@@ -42,13 +42,14 @@ class MlpPolicy_bc(object):
         self.ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
         self.lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
 
-        self.total_loss, self.loss_names, self.losses, self.var_list = self.setup_ppo_loss(clip_param, entcoeff)
+        self.ppo_loss, self.bc_loss, self.loss_names, self.losses, self.var_list = self.setup_ppo_loss(clip_param, entcoeff)
 
-        self.gradients = tf.gradients(self.total_loss, self.var_list)
+        self.gradients = tf.gradients(self.ppo_loss, self.var_list)
         self.assign_old_eq_new_op = [tf.assign(oldv, newv) for (oldv, newv) in zipsame(self.get_old_variables(), self.get_variables())]
 
         self.learning_rate = tf.placeholder(dtype=tf.float32)
-        self.update_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.total_loss, var_list=self.var_list)
+        self.update_op_ppo = tf.train.AdamOptimizer(self.learning_rate).minimize(self.ppo_loss, var_list=self.var_list)
+        self.update_op_bc = tf.train.AdamOptimizer(self.learning_rate).minimize(self.bc_loss, var_list=self.var_list)
 
     def build_network(self, sess, scope, ob):
 
@@ -102,8 +103,7 @@ class MlpPolicy_bc(object):
         # bc loss
         bc_loss = tf.reduce_mean(tf.square(tf.subtract(self.ac, self.ac_mean)))
 
-        total_loss = pol_surr + pol_entpen + vf_loss
-        total_loss = ((1 - self.bc_weight) * total_loss + self.bc_weight * bc_loss) * 2
+        ppo_loss = pol_surr + pol_entpen + vf_loss
 
         losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent, bc_loss]
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent", "bc_loss"]
@@ -111,7 +111,7 @@ class MlpPolicy_bc(object):
 
         var_list = var_list = self.get_trainable_variables()
 
-        return total_loss, loss_names, losses, var_list
+        return ppo_loss, bc_loss, loss_names, losses, var_list
 
     def compute_losses(self, ob, ac, atarg, ret, cur_lrmult):
         return self.sess.run([self.losses],
@@ -122,8 +122,8 @@ class MlpPolicy_bc(object):
                             self.lrmult:cur_lrmult, 
                             })
 
-    def lossandupdate(self, ob, ac, atarg, ret, cur_lrmult, learning_rate):
-         losses, _ = self.sess.run([self.losses, self.update_op],
+    def lossandupdate_ppo(self, ob, ac, atarg, ret, cur_lrmult, learning_rate):
+         losses, _ = self.sess.run([self.losses, self.update_op_ppo],
                  feed_dict={self.ob: ob,
                             self.ac: ac, 
                             self.atarg: atarg,
@@ -132,6 +132,13 @@ class MlpPolicy_bc(object):
                             self.learning_rate:learning_rate, 
                             })
          return losses
+
+    def update_bc(self, ob, ac, learning_rate):
+        self.sess.run(self.update_op_bc,
+                 feed_dict={self.ob: ob,
+                            self.ac: ac, 
+                            self.learning_rate:learning_rate, 
+                            })
 
     def get_grad(self, ob, ac, atarg, ret, cur_lrmult):
         return self.sess.run([self.gradients],
@@ -143,7 +150,7 @@ class MlpPolicy_bc(object):
                             })
 
     def optimize(self, lr, ob, ac, atarg, ret):
-        self.sess.run(self.update_op, feed_dict={self.learning_rate:lr,
+        self.sess.run(self.update_op_ppo, feed_dict={self.learning_rate:lr,
                                                  self.ob: ob,
                                                  self.ac: ac, 
                                                  self.atarg: atarg,

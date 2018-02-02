@@ -29,10 +29,11 @@ from baselines import logger
 # Training parameters for bc
 # ===========================
 BEHAVIORAL_CLONING = True
+PPO = False
 
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
-BC_BUFFER_SIZE = 10000
+BC_BUFFER_SIZE = 20000
 LOAD_MODEL = False
 CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 ############################
@@ -40,7 +41,7 @@ CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
-def traj_segment_generator(pi, mpc_controller, env, horizon):
+def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, horizon):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     ob = env.reset()
@@ -68,7 +69,11 @@ def traj_segment_generator(pi, mpc_controller, env, horizon):
         # print("ac", ac.shape)
 
         _, vpred = pi.act(ob)
-        ac = mpc_controller.get_action(ob)
+
+        if bc_data_buffer.size > 2000:
+            ac = mpc_controller_bc_ppo.get_action(ob)
+        else:
+            ac = mpc_controller.get_action(ob)
 
 
         i = t % horizon
@@ -130,43 +135,8 @@ def add_vtarg_and_adv(seg, gamma=0.99, lam=0.95):
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 
-def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_ppo_data_buffer, Training_epoch=1000):
-
-    DAGGER = True
-    # Imitation policy
-    print("Behavioral cloning ..... ", " bc buffer size: ", bc_ppo_data_buffer.size)
-    path = {'observations': [], 'actions': []}
-    bc_network.train(bc_ppo_data_buffer, steps=1)
-
-    for EP in range(Training_epoch):
-        loss = bc_network.train(bc_ppo_data_buffer, steps=1)
-
-        if EP % 500 == 0:
-            print('epcho: ', EP, ' loss: ', loss)
-            behavioral_cloning_eval(sess, env, bc_network, env_horizon)
-
-        # if DAGGER and EP%500 ==0 and EP!=0:
-        #     print("Daggering")
-
-        #     st = env.reset_model()
-        #     return_ = 0
-
-        #     for j in range(env_horizon):
-        #         at = bc_network.predict(np.reshape(st, [1, -1]))[0]
-        #         expert_at = mpc_controller.get_action(st)
-        #         nxt_st, r, _, _ = env.step(at)
-        #         path['observations'].append(st)
-        #         path['actions'].append(expert_at)
-        #         st = nxt_st
-        #         return_ += r
-
-        #     # add into buffers
-        #     for n in range(len(path['observations'])):
-        #         bc_ppo_data_buffer.add(path['observations'][n], path['actions'][n])
-        #     print("now training data size: ", bc_ppo_data_buffer.size)
-
 def behavioral_cloning_eval(sess, env, bc_ppo_network, env_horizon):
-    print('---------- bc testing ---------')
+    print('---------- BC PPO Performance ---------')
     st = env.reset_model()
     returns = 0
 
@@ -221,7 +191,9 @@ def train(env,
 
     random_controller = RandomController(env)
     model_data_buffer = DataBuffer()
-    bc_ppo_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 6)
+
+    ppo_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 6)
+    bc_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 2)
 
     # sample path
     print("collecting random data .....  ")
@@ -238,7 +210,7 @@ def train(env,
             model_data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
 
 
-    print("data buffer size: ", model_data_buffer.size)
+    print("model data buffer size: ", model_data_buffer.size)
 
     normalization = compute_normalization(model_data_buffer)
 
@@ -267,13 +239,14 @@ def train(env,
 
     policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, bc_weight=bc_weight)
 
-    mpc_controller_bc = MPCcontroller_BC_PPO(env=env, 
+    mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
                                    dyn_model=dyn_model, 
                                    bc_ppo_network=policy_nn,
                                    horizon=mpc_horizon, 
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
+    bc_net = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
 
     #========================================================
     # 
@@ -299,7 +272,7 @@ def train(env,
     # 
     # Prepare for rollouts
     # 
-    seg_gen = traj_segment_generator(policy_nn, mpc_controller_bc, env, env_horizon)
+    seg_gen = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, env_horizon)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -311,18 +284,18 @@ def train(env,
 
     for itr in range(onpol_iters):
 
+        print("onpol_iters: ", itr)
+        dyn_model.fit(model_data_buffer)
 
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
             cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
 
-        print("onpol_iters: ", itr)
-        dyn_model.fit(model_data_buffer)
         # saver.save(sess, CHECKPOINT_DIR)
         behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
-        bc_ppo_data_buffer.clear()
+        ppo_data_buffer.clear()
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
 
@@ -332,24 +305,35 @@ def train(env,
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
         for n in range(len(ob)):
-            bc_ppo_data_buffer.add((ob[n], ac[n], rew[n], nxt_ob[n], atarg[n], tdlamret[n]))
+            ppo_data_buffer.add((ob[n], ac[n], rew[n], nxt_ob[n], atarg[n], tdlamret[n]))
+            bc_data_buffer.add((ob[n], ac[n]))
             model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
 
-        print("bc_ppo_data_buffer", bc_ppo_data_buffer.size)
-        print("model_data_buffer", model_data_buffer.size)
+        print("ppo_data_buffer size", ppo_data_buffer.size)
+        print("bc_data_buffer size", bc_data_buffer.size)
+        print("model data buffer size: ", model_data_buffer.size)
 
-        optim_batchsize = optim_batchsize or ob.shape[0]
+        # optim_batchsize = optim_batchsize or ob.shape[0]
 
         if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
         policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
         
-        for _ in range(optim_epochs):
-            losses = [] # list of tuples, each of which gives the loss for a minibatch
-            for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
-                sample_ob_no, sample_ac_na, sample_rew, sample_nxt_ob_no, sample_adv_n, sample_b_n_target = bc_ppo_data_buffer.sample(optim_batchsize)
+        for op_ep in range(optim_epochs):
+            # losses = [] # list of tuples, each of which gives the loss for a minibatch
+            # for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
 
-                newlosses = policy_nn.lossandupdate(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
-                losses.append(newlosses)
+            if PPO:
+                sample_ob_no, sample_ac_na, sample_rew, sample_nxt_ob_no, sample_adv_n, sample_b_n_target = ppo_data_buffer.sample(optim_batchsize)
+                newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                # losses.append(newlosses)
+
+            if BEHAVIORAL_CLONING:
+                sample_ob_no, sample_ac_na = bc_data_buffer.sample(optim_batchsize)
+                policy_nn.update_bc(sample_ob_no, sample_ac_na, optim_stepsize*cur_lrmult)
+
+            if op_ep % 500 == 0:
+                print('epcho: ', op_ep)
+                behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
 
@@ -400,8 +384,8 @@ def main():
     parser.add_argument('--gamma', '-g', type=float, default=0.99)
     parser.add_argument('--entcoeff', '-ent', type=float, default=0.0)
     parser.add_argument('--lam', type=float, default=0.95)
-    parser.add_argument('--optim_epochs', type=int, default=100)
-    parser.add_argument('--optim_batchsize', type=int, default=64)
+    parser.add_argument('--optim_epochs', type=int, default=1000)
+    parser.add_argument('--optim_batchsize', type=int, default=128)
     parser.add_argument('--schedule', type=str, default='linear')
     parser.add_argument('--timesteps_per_actorbatch', '-b2', type=int, default=1000)
     parser.add_argument('--bc_weight', '-bcw', type=float, default=0.5)
