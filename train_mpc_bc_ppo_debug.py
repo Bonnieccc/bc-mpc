@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import gym
 from dynamics import NNDynamicsModel
-from controllers import MPCcontroller, RandomController, MPCcontroller_BC_PPO, MPCcontroller_BC
+from controllers import MPCcontroller, RandomController, MPCcontroller_BC_PPO
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -28,8 +28,7 @@ from baselines import logger
 # ===========================
 # Training parameters for bc
 # ===========================
-BEHAVIORAL_CLONING = False
-PPO = False
+
 
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
@@ -38,105 +37,8 @@ LOAD_MODEL = False
 CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 ############################
 
-def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000):
-
-    DAGGER = True
-    # Imitation policy
-    print("Behavioral cloning ..... ", " bc buffer size: ", bc_data_buffer.size)
-    path = {'observations': [], 'actions': []}
-    bc_network.train(bc_data_buffer, steps=1)
-
-    for EP in range(Training_epoch):
-        loss = bc_network.train(bc_data_buffer, steps=1)
-
-        if EP % 500 == 0:
-            print('epcho: ', EP, ' loss: ', loss)
-            behavioral_cloning_eval(sess, env, bc_network, env_horizon)
-
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
-
-def traj_segment_generator_old(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, horizon):
-    t = 0
-    ac = env.action_space.sample() # not used, just so we have the datatype
-    ob = env.reset()
-    new = False # marks if we're on first timestep of an episode
-
-    cur_ep_ret = 0 # return in current episode
-    cur_ep_len = 0 # len of current episode
-    ep_rets = [] # returns of completed episodes in this segment
-    ep_lens = [] # lengths of ...
-
-    # Initialize history arrays
-    obs = np.array([ob for _ in range(horizon)])
-    nxt_obs = np.array([ob for _ in range(horizon)])
-
-    rews = np.zeros(horizon, 'float32')
-    vpreds = np.zeros(horizon, 'float32')
-    news = np.zeros(horizon, 'int32')
-    acs = np.array([ac for _ in range(horizon)])
-    prevacs = acs.copy()
-
-    while True:
-        prevac = ac
-
-        # _, vpred = pi.act(ob)
-
-        # ac, vpred = pi.act(ob)
-
-        vpred = 0.
-
-        # if bc_data_buffer.size > 2000:
-        #     ac = mpc_controller_bc_ppo.get_action(ob)
-        # else:
-        ac = mpc_controller.get_action(ob)
-
-
-        i = t % horizon
-        obs[i] = ob
-        vpreds[i] = vpred
-        news[i] = new
-        acs[i] = ac
-        prevacs[i] = prevac
-
-        ob, rew, done, _ = env.step(ac[0])
-
-        nxt_obs[i] = ob
-        rews[i] = rew
-
-        cur_ep_ret += rew
-        cur_ep_len += 1
-
-
-        if t > 0 and t % horizon == 0:
-            ob = env.reset()
-            new = True 
-
-        if new:
-            ep_rets.append(cur_ep_ret)
-            ep_lens.append(cur_ep_len)
-            cur_ep_ret = 0
-            cur_ep_len = 0
-            new = False # marks if we're on first timestep of an episode
-
-
-        if t > 0 and t % horizon == 0:
-            print("ep_rets ", ep_rets)
-            print("ep_lens ", ep_lens)
-            ob = env.reset()
-            cur_ep_ret = 0
-            cur_ep_len = 0
-
-            sec = copy.deepcopy({"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
-            "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-            "ep_rets" : ep_rets, "ep_lens" : ep_lens})
-            yield sec
-            # Be careful!!! if you change the downstream algorithm to aggregate
-            # several of these batches, then be sure to do a deepcopy
-            ep_rets = []
-            ep_lens = []
-
-        t += 1
 
 def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, horizon):
     t = 0
@@ -162,16 +64,14 @@ def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_bu
     while True:
         prevac = ac
 
-        # _, vpred = pi.act(ob)
+        _, vpred = pi.act(ob)
 
         # ac, vpred = pi.act(ob)
 
-        vpred = 0.
-
-        # if bc_data_buffer.size > 2000:
-        #     ac = mpc_controller_bc_ppo.get_action(ob)
-        # else:
-        ac = mpc_controller.get_action(ob)
+        if bc_data_buffer.size > 2000:
+            ac = mpc_controller_bc_ppo.get_action(ob)
+        else:
+            ac = mpc_controller.get_action(ob)
 
         obs[t] = ob
         vpreds[t] = vpred
@@ -195,8 +95,8 @@ def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_bu
 
 
         if t > 0 and t % (horizon-1) == 0:
-            print("ep_rets ", ep_rets)
-            print("ep_lens ", ep_lens)
+            # print("ep_rets ", ep_rets)
+            # print("ep_lens ", ep_lens)
 
             break
 
@@ -209,12 +109,10 @@ def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_bu
     
     return  sec
 
-
 def add_vtarg_and_adv(seg, gamma=0.99, lam=0.95):
     """
     Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
     """
-
     new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
     vpred = np.append(seg["vpred"], seg["nextvpred"])
     T = len(seg["rew"])
@@ -234,9 +132,37 @@ def behavioral_cloning_eval(sess, env, bc_ppo_network, env_horizon):
     returns = 0
 
     for j in range(env_horizon):
-        # at, vpred = bc_ppo_network.act(st)
-        at = bc_ppo_network.predict(np.reshape(st, [1, -1]))[0]
+        at, vpred = bc_ppo_network.act(st, stochastic=False)
+        # print(at)
+        nxt_st, r, _, _ = env.step(at)
+        st = nxt_st
+        returns += r
 
+    print("return: ", returns)
+
+def behavioral_cloning(sess, env, bc_network, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000):
+
+    DAGGER = True
+    # Imitation policy
+    print("Behavioral cloning ..... ", " bc buffer size: ", bc_data_buffer.size)
+    path = {'observations': [], 'actions': []}
+    bc_network.train(bc_data_buffer, steps=1)
+
+    for EP in range(Training_epoch):
+        loss = bc_network.train(bc_data_buffer, steps=1)
+
+        if EP % 500 == 0:
+            print('epcho: ', EP, ' loss: ', loss)
+            behavioral_cloning_test(sess, env, bc_network, env_horizon)
+
+
+def behavioral_cloning_test(sess, env, bc_network, env_horizon):
+    print('---------- bc testing ---------')
+    st = env.reset_model()
+    returns = 0
+
+    for j in range(env_horizon):
+        at = bc_network.predict(np.reshape(st, [1, -1]))[0]
         # print(at)
         nxt_st, r, _, _ = env.step(at)
         st = nxt_st
@@ -270,7 +196,8 @@ def train(env,
          schedule='linear',
          optim_stepsize=3e-4,
          timesteps_per_actorbatch=1000,
-         bc_weight=0.5,
+         BEHAVIORAL_CLONING = True,
+         PPO = True,
          ):
 
     start = time.time()
@@ -281,6 +208,9 @@ def train(env,
     print("-------- env info --------")
     print("observation_space: ", env.observation_space.shape)
     print("action_space: ", env.action_space.shape)
+    print("BEHAVIORAL_CLONING: ", BEHAVIORAL_CLONING)
+    print("PPO: ", PPO)
+
     print(" ")
 
 
@@ -332,18 +262,14 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, bc_weight=bc_weight)
-    # policy_nn = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
+    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
-    # mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
-    #                                dyn_model=dyn_model, 
-    #                                bc_ppo_network=policy_nn,
-    #                                horizon=mpc_horizon, 
-    #                                cost_fn=cost_fn, 
-    #                                num_simulated_paths=num_simulated_paths)
-    mpc_controller_bc_ppo = MPCcontroller_BC(env=env, 
+    bc_net = BCnetwork(sess, env, BATCH_SIZE_BC, learning_rate)
+
+
+    mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
                                    dyn_model=dyn_model, 
-                                   bc_network=policy_nn,
+                                   bc_ppo_network=policy_nn,
                                    horizon=mpc_horizon, 
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
@@ -382,51 +308,6 @@ def train(env,
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
     max_timesteps = num_paths_onpol * env_horizon
 
-
-    # for itr in range(1):
-    #     """ YOUR CODE HERE """
-    #     print("onpol_iters: ", itr)
-
-    #     dyn_model.fit(model_data_buffer)
-
-
-    #     returns = []
-    #     costs = []
-
-    #     for w in range(1):
-    #         print("paths_onpol: ", w, " running.....")
-    #         print("data buffer size: ", model_data_buffer.size)
-
-    #         st = env.reset_model()
-    #         path = {'observations': [], 'actions': [], 'next_observations':[]}
-    #         # tracker.print_diff()
-
-    #         return_ = 0
-
-    #         for i in range(env_horizon):
-    #             if render:
-    #                 env.render()
-    #             # print("env_horizon: ", i)   
-
-    #             at = mpc_controller.get_action(st)
-    #             # at = random_controller.get_action(st)
-
-    #             st_next, env_reward, _, _ = env._step(at)
-    #             path['observations'].append(st)
-    #             path['actions'].append(at)
-    #             path['next_observations'].append(st_next)
-    #             st = st_next
-    #             return_ += env_reward
-
-    #         # cost & return
-    #         cost = path_cost(cost_fn, path)
-    #         costs.append(cost)
-    #         returns.append(return_)
-    #         print("total return: ", return_)
-    #         print("costs: ", cost)
-
-
-
     for itr in range(onpol_iters):
 
         print("onpol_iters: ", itr)
@@ -438,7 +319,7 @@ def train(env,
             cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
 
         # saver.save(sess, CHECKPOINT_DIR)
-        # behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
+        behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
         ppo_data_buffer.clear()
         seg = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, env_horizon)
@@ -460,27 +341,32 @@ def train(env,
 
         # optim_batchsize = optim_batchsize or ob.shape[0]
 
-        # if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
-        # policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
+        # behavioral_cloning(sess, env, bc_net, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
+
+
+
+
+
+
+        if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
+        policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
         
-        behavioral_cloning(sess, env, policy_nn, mpc_controller, env_horizon, bc_data_buffer, Training_epoch=1000)
+        for op_ep in range(optim_epochs):
+            # losses = [] # list of tuples, each of which gives the loss for a minibatch
+            # for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
 
-        # for op_ep in range(optim_epochs):
-        #     # losses = [] # list of tuples, each of which gives the loss for a minibatch
-        #     # for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
+            if PPO:
+                sample_ob_no, sample_ac_na, sample_rew, sample_nxt_ob_no, sample_adv_n, sample_b_n_target = ppo_data_buffer.sample(optim_batchsize)
+                newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                # losses.append(newlosses)
 
-        #     if PPO:
-        #         sample_ob_no, sample_ac_na, sample_rew, sample_nxt_ob_no, sample_adv_n, sample_b_n_target = ppo_data_buffer.sample(optim_batchsize)
-        #         newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
-        #         # losses.append(newlosses)
+            if BEHAVIORAL_CLONING:
+                sample_ob_no, sample_ac_na = bc_data_buffer.sample(optim_batchsize)
+                policy_nn.update_bc(sample_ob_no, sample_ac_na, optim_stepsize*cur_lrmult)
 
-        #     if BEHAVIORAL_CLONING:
-        #         sample_ob_no, sample_ac_na = bc_data_buffer.sample(optim_batchsize)
-        #         policy_nn.update_bc(sample_ob_no, sample_ac_na, optim_stepsize*cur_lrmult)
-
-        #     if op_ep % 500 == 0:
-        #         print('epcho: ', op_ep)
-        #         behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
+            if op_ep % 100 == 0:
+                print('epcho: ', op_ep)
+                behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
 
@@ -526,16 +412,15 @@ def main():
     parser.add_argument('--batch_size', '-b', type=int, default=512)
 
     # BC and PPO Training args
-    parser.add_argument('--optim_stepsize', '-olr', type=float, default=3e-4)
+    parser.add_argument('--optim_stepsize', '-olr', type=float, default=1e-3)
     parser.add_argument('--clip_param', '-cp', type=float, default=0.2)
     parser.add_argument('--gamma', '-g', type=float, default=0.99)
     parser.add_argument('--entcoeff', '-ent', type=float, default=0.0)
     parser.add_argument('--lam', type=float, default=0.95)
-    parser.add_argument('--optim_epochs', type=int, default=1000)
+    parser.add_argument('--optim_epochs', type=int, default=2000)
     parser.add_argument('--optim_batchsize', type=int, default=128)
     parser.add_argument('--schedule', type=str, default='linear')
     parser.add_argument('--timesteps_per_actorbatch', '-b2', type=int, default=1000)
-    parser.add_argument('--bc_weight', '-bcw', type=float, default=0.5)
 
     # Data collection
     parser.add_argument('--random_paths', '-r', type=int, default=10)
@@ -547,8 +432,12 @@ def main():
     parser.add_argument('--size', '-s', type=int, default=500)
     # MPC Controller
     parser.add_argument('--mpc_horizon', '-m', type=int, default=10)
-    args = parser.parse_args()
 
+
+    parser.add_argument('--bc', action='store_true')
+    parser.add_argument('--ppo', action='store_true')
+
+    args = parser.parse_args()
 
     # Set seed
     np.random.seed(args.seed)
@@ -593,7 +482,8 @@ def main():
                  schedule = args.schedule,
                  optim_stepsize = args.optim_stepsize,
                  timesteps_per_actorbatch = args.timesteps_per_actorbatch,
-                 bc_weight=args.bc_weight,
+                 BEHAVIORAL_CLONING = args.bc,
+                 PPO = args.ppo,
                  )
 
 if __name__ == "__main__":

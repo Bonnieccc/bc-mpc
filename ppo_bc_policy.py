@@ -15,7 +15,7 @@ import gym
 class MlpPolicy_bc(object):
     recurrent = False
 
-    def __init__(self, sess, env, hid_size, num_hid_layers, clip_param, entcoeff, bc_weight=0.5):
+    def __init__(self, sess, env, hid_size, num_hid_layers, clip_param, entcoeff):
         self.sess = sess
         self.ob_space = env.observation_space
         self.ac_space = env.action_space
@@ -23,7 +23,6 @@ class MlpPolicy_bc(object):
         self.ac_dim = env.action_space.shape[0]
         self.hid_size = hid_size
         self.num_hid_layers = num_hid_layers 
-        self.bc_weight = bc_weight
         self.pdtype = pdtype = make_pdtype(self.ac_space)
 
         self.ob = tf.placeholder(name="ob", dtype=tf.float32, shape=[None] + list(self.ob_space.shape))
@@ -102,7 +101,9 @@ class MlpPolicy_bc(object):
 
 
         # bc loss
-        bc_loss = tf.reduce_mean(tf.square(tf.subtract(self.ac, self.ac_mean)))
+        print("self.ac", self.ac)
+        print("self.ac_mean", self.ac_mean)
+        bc_loss = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.ac, self.ac_mean))))
 
         ppo_loss = pol_surr + pol_entpen + vf_loss
 

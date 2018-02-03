@@ -166,7 +166,6 @@ def train(env,
          schedule='linear',
          optim_stepsize=3e-4,
          timesteps_per_actorbatch=1000,
-         bc_weight=0.5,
          BEHAVIORAL_CLONING = True,
          PPO = True,
          ):
@@ -233,7 +232,7 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, bc_weight=bc_weight)
+    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
     mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
                                    dyn_model=dyn_model, 
@@ -325,7 +324,7 @@ def train(env,
                 sample_ob_no, sample_ac_na = bc_data_buffer.sample(optim_batchsize)
                 policy_nn.update_bc(sample_ob_no, sample_ac_na, optim_stepsize*cur_lrmult)
 
-            if op_ep % 500 == 0:
+            if op_ep % (100) == 0:
                 print('epcho: ', op_ep)
                 behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
@@ -373,17 +372,15 @@ def main():
     parser.add_argument('--batch_size', '-b', type=int, default=512)
 
     # BC and PPO Training args
-    parser.add_argument('--optim_stepsize', '-olr', type=float, default=3e-4)
+    parser.add_argument('--optim_stepsize', '-olr', type=float, default=1e-3)
     parser.add_argument('--clip_param', '-cp', type=float, default=0.2)
     parser.add_argument('--gamma', '-g', type=float, default=0.99)
     parser.add_argument('--entcoeff', '-ent', type=float, default=0.0)
     parser.add_argument('--lam', type=float, default=0.95)
-    parser.add_argument('--optim_epochs', type=int, default=1000)
+    parser.add_argument('--optim_epochs', type=int, default=2000)
     parser.add_argument('--optim_batchsize', type=int, default=128)
     parser.add_argument('--schedule', type=str, default='linear')
     parser.add_argument('--timesteps_per_actorbatch', '-b2', type=int, default=1000)
-    parser.add_argument('--bc_weight', '-bcw', type=float, default=0.5)
-
     # Data collection
     parser.add_argument('--random_paths', '-r', type=int, default=10)
     parser.add_argument('--onpol_paths', '-d', type=int, default=1)
@@ -444,7 +441,6 @@ def main():
                  schedule = args.schedule,
                  optim_stepsize = args.optim_stepsize,
                  timesteps_per_actorbatch = args.timesteps_per_actorbatch,
-                 bc_weight=args.bc_weight,
                  BEHAVIORAL_CLONING = args.bc,
                  PPO = args.ppo,
                  )
