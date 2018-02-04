@@ -65,9 +65,17 @@ class MlpPolicy_bc(object):
 
         with tf.variable_scope(scope + '/pol'):
             last_out = obz
+            
+            ############## tf layers version #############
             for i in range(self.num_hid_layers):
                 last_out = tf.nn.tanh(tf.layers.dense(last_out, self.hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(1.0)))
-            mean = tf.layers.dense(last_out, self.pdtype.param_shape()[0]//2, name='final', kernel_initializer=U.normc_initializer(0.01))
+            mean = tf.layers.dense(last_out, self.ac_dim, name='final', kernel_initializer=U.normc_initializer(0.01))
+            
+            # ############## tf learn version #############
+            # for i in range(self.num_hid_layers):
+            #     last_out = tflearn.fully_connected(last_out, self.hid_size, name='fc%i'%(i+1), activation='tanh')
+            # mean = tflearn.fully_connected(last_out, self.ac_dim, name='final', activation='tanh')
+
             logstd = tf.get_variable(name="logstd", shape=[1, self.pdtype.param_shape()[0]//2], initializer=tf.zeros_initializer())
             pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
 

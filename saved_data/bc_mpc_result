@@ -1,0 +1,368 @@
+Logging data to data/mb_mpc_HalfCheetah-v1_03-02-2018_13-13-25/log.txt
+-------- env info --------
+observation_space:  (20,)
+action_space:  (6,)
+
+collecting random data .....
+data buffer size:  10000
+Could not find old checkpoint
+onpol_iters:  0
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  10000
+total return:  46.564892132074924
+costs:  86.22788705518825
+Behavioral cloning .....   bc buffer size:  1000
+epcho:  0  loss:  0.56782115
+---------- bc testing ---------
+return:  -4.654043491268488
+epcho:  500  loss:  0.5198199
+---------- bc testing ---------
+return:  -31.206141312755182
+-------------------------------------
+|       Iteration |               0 |
+|     AverageCost |            86.2 |
+|         StdCost |               0 |
+|     MinimumCost |            86.2 |
+|     MaximumCost |            86.2 |
+|   AverageReturn |            46.6 |
+|       StdReturn |               0 |
+|   MinimumReturn |            46.6 |
+|   MaximumReturn |            46.6 |
+-------------------------------------
+onpol_iters:  1
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  11000
+total return:  346.67105831800615
+costs:  -129.5608687160234
+Behavioral cloning .....   bc buffer size:  2000
+epcho:  0  loss:  0.5425732
+---------- bc testing ---------
+return:  43.11959581810382
+epcho:  500  loss:  0.49536663
+---------- bc testing ---------
+return:  159.33055432156755
+-------------------------------------
+|       Iteration |               1 |
+|     AverageCost |            -130 |
+|         StdCost |               0 |
+|     MinimumCost |            -130 |
+|     MaximumCost |            -130 |
+|   AverageReturn |             347 |
+|       StdReturn |               0 |
+|   MinimumReturn |             347 |
+|   MaximumReturn |             347 |
+-------------------------------------
+onpol_iters:  2
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  12000
+total return:  558.5822025066514
+costs:  -576.347699787187
+Behavioral cloning .....   bc buffer size:  3000
+epcho:  0  loss:  0.5273619
+---------- bc testing ---------
+return:  161.8904969219463
+epcho:  500  loss:  0.49970868
+---------- bc testing ---------
+return:  43.35361008034763
+-------------------------------------
+|       Iteration |               2 |
+|     AverageCost |            -576 |
+|         StdCost |               0 |
+|     MinimumCost |            -576 |
+|     MaximumCost |            -576 |
+|   AverageReturn |             559 |
+|       StdReturn |               0 |
+|   MinimumReturn |             559 |
+|   MaximumReturn |             559 |
+-------------------------------------
+onpol_iters:  3
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  13000
+total return:  974.0401209370622
+costs:  -411.2971403956308
+Behavioral cloning .....   bc buffer size:  4000
+epcho:  0  loss:  0.52392113
+---------- bc testing ---------
+return:  50.32965776322478
+epcho:  500  loss:  0.5157696
+---------- bc testing ---------
+return:  56.61883911819753
+-------------------------------------
+|       Iteration |               3 |
+|     AverageCost |            -411 |
+|         StdCost |               0 |
+|     MinimumCost |            -411 |
+|     MaximumCost |            -411 |
+|   AverageReturn |             974 |
+|       StdReturn |               0 |
+|   MinimumReturn |             974 |
+|   MaximumReturn |             974 |
+-------------------------------------
+onpol_iters:  4
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  14000
+total return:  1265.2772721359988
+costs:  -1381.163296759597
+Behavioral cloning .....   bc buffer size:  5000
+epcho:  0  loss:  0.5225113
+---------- bc testing ---------
+return:  48.06949695355491
+epcho:  500  loss:  0.5108458
+---------- bc testing ---------
+return:  89.92919981350299
+-------------------------------------
+|       Iteration |               4 |
+|     AverageCost |       -1.38e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.38e+03 |
+|     MaximumCost |       -1.38e+03 |
+|   AverageReturn |        1.27e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.27e+03 |
+|   MaximumReturn |        1.27e+03 |
+-------------------------------------
+onpol_iters:  5
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  15000
+total return:  1136.089327536052
+costs:  -1493.9557901041555
+Behavioral cloning .....   bc buffer size:  6000
+epcho:  0  loss:  0.50518477
+---------- bc testing ---------
+return:  76.58780162402299
+epcho:  500  loss:  0.48522338
+---------- bc testing ---------
+return:  19.922567227444357
+-------------------------------------
+|       Iteration |               5 |
+|     AverageCost |       -1.49e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.49e+03 |
+|     MaximumCost |       -1.49e+03 |
+|   AverageReturn |        1.14e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.14e+03 |
+|   MaximumReturn |        1.14e+03 |
+-------------------------------------
+onpol_iters:  6
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  16000
+total return:  1016.8851598057869
+costs:  -1224.4442986920876
+Behavioral cloning .....   bc buffer size:  7000
+epcho:  0  loss:  0.513852
+---------- bc testing ---------
+return:  15.25388738777752
+epcho:  500  loss:  0.50152093
+---------- bc testing ---------
+return:  229.44988395760228
+-------------------------------------
+|       Iteration |               6 |
+|     AverageCost |       -1.22e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.22e+03 |
+|     MaximumCost |       -1.22e+03 |
+|   AverageReturn |        1.02e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.02e+03 |
+|   MaximumReturn |        1.02e+03 |
+-------------------------------------
+onpol_iters:  7
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  17000
+total return:  569.6850957339265
+costs:  -796.7694695754086
+Behavioral cloning .....   bc buffer size:  8000
+epcho:  0  loss:  0.54218644
+---------- bc testing ---------
+return:  89.99965301349135
+epcho:  500  loss:  0.505533
+---------- bc testing ---------
+return:  1085.4567819206975
+-------------------------------------
+|       Iteration |               7 |
+|     AverageCost |            -797 |
+|         StdCost |               0 |
+|     MinimumCost |            -797 |
+|     MaximumCost |            -797 |
+|   AverageReturn |             570 |
+|       StdReturn |               0 |
+|   MinimumReturn |             570 |
+|   MaximumReturn |             570 |
+-------------------------------------
+onpol_iters:  8
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  18000
+total return:  779.9511414026808
+costs:  9679.432106631488
+Behavioral cloning .....   bc buffer size:  9000
+epcho:  0  loss:  0.53003615
+---------- bc testing ---------
+return:  558.9733201909183
+epcho:  500  loss:  0.5122217
+---------- bc testing ---------
+return:  69.68499958289634
+-------------------------------------
+|       Iteration |               8 |
+|     AverageCost |        9.68e+03 |
+|         StdCost |               0 |
+|     MinimumCost |        9.68e+03 |
+|     MaximumCost |        9.68e+03 |
+|   AverageReturn |             780 |
+|       StdReturn |               0 |
+|   MinimumReturn |             780 |
+|   MaximumReturn |             780 |
+-------------------------------------
+onpol_iters:  9
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  19000
+total return:  912.5874859632476
+costs:  -768.4937321765856
+Behavioral cloning .....   bc buffer size:  10000
+epcho:  0  loss:  0.51154494
+---------- bc testing ---------
+return:  658.8863804725814
+epcho:  500  loss:  0.52767634
+---------- bc testing ---------
+return:  542.4683423132296
+-------------------------------------
+|       Iteration |               9 |
+|     AverageCost |            -768 |
+|         StdCost |               0 |
+|     MinimumCost |            -768 |
+|     MaximumCost |            -768 |
+|   AverageReturn |             913 |
+|       StdReturn |               0 |
+|   MinimumReturn |             913 |
+|   MaximumReturn |             913 |
+-------------------------------------
+onpol_iters:  10
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  20000
+total return:  1087.706855464222
+costs:  -1286.6012866113165
+Behavioral cloning .....   bc buffer size:  10001
+epcho:  0  loss:  0.51895404
+---------- bc testing ---------
+return:  270.4808439563632
+epcho:  500  loss:  0.51298046
+---------- bc testing ---------
+return:  118.77460586938264
+-------------------------------------
+|       Iteration |              10 |
+|     AverageCost |       -1.29e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.29e+03 |
+|     MaximumCost |       -1.29e+03 |
+|   AverageReturn |        1.09e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.09e+03 |
+|   MaximumReturn |        1.09e+03 |
+-------------------------------------
+onpol_iters:  11
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  21000
+total return:  1030.7890688211942
+costs:  906.6193545862727
+Behavioral cloning .....   bc buffer size:  10001
+epcho:  0  loss:  0.5256271
+---------- bc testing ---------
+return:  427.10878869991365
+epcho:  500  loss:  0.5078093
+---------- bc testing ---------
+return:  212.0906245297664
+-------------------------------------
+|       Iteration |              11 |
+|     AverageCost |             907 |
+|         StdCost |               0 |
+|     MinimumCost |             907 |
+|     MaximumCost |             907 |
+|   AverageReturn |        1.03e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.03e+03 |
+|   MaximumReturn |        1.03e+03 |
+-------------------------------------
+onpol_iters:  12
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  22000
+total return:  1213.6782100054832
+costs:  -1579.072366706907
+Behavioral cloning .....   bc buffer size:  10001
+epcho:  0  loss:  0.5056983
+---------- bc testing ---------
+return:  508.1953536306437
+epcho:  500  loss:  0.5445605
+---------- bc testing ---------
+return:  656.2642371598067
+-------------------------------------
+|       Iteration |              12 |
+|     AverageCost |       -1.58e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.58e+03 |
+|     MaximumCost |       -1.58e+03 |
+|   AverageReturn |        1.21e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.21e+03 |
+|   MaximumReturn |        1.21e+03 |
+-------------------------------------
+onpol_iters:  13
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  23000
+total return:  1552.1625626612972
+costs:  -1931.1828056735687
+Behavioral cloning .....   bc buffer size:  10001
+epcho:  0  loss:  0.5363909
+---------- bc testing ---------
+return:  -205.91728482019334
+epcho:  500  loss:  0.5267325
+---------- bc testing ---------
+return:  500.95979802489376
+-------------------------------------
+|       Iteration |              13 |
+|     AverageCost |       -1.93e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.93e+03 |
+|     MaximumCost |       -1.93e+03 |
+|   AverageReturn |        1.55e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.55e+03 |
+|   MaximumReturn |        1.55e+03 |
+-------------------------------------
+onpol_iters:  14
+Model fitting for  260 times ...
+paths_onpol:  0  running.....
+data buffer size:  24000
+total return:  1247.134902206364
+costs:  -1590.2133922644296
+Behavioral cloning .....   bc buffer size:  10001
+epcho:  0  loss:  0.5307365
+---------- bc testing ---------
+return:  874.4787979830962
+epcho:  500  loss:  0.55404824
+---------- bc testing ---------
+return:  885.8904573968343
+-------------------------------------
+|       Iteration |              14 |
+|     AverageCost |       -1.59e+03 |
+|         StdCost |               0 |
+|     MinimumCost |       -1.59e+03 |
+|     MaximumCost |       -1.59e+03 |
+|   AverageReturn |        1.25e+03 |
+|       StdReturn |               0 |
+|   MinimumReturn |        1.25e+03 |
+|   MaximumReturn |        1.25e+03 |
+-------------------------------------

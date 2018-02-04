@@ -1,0 +1,19 @@
+for ppo:
+working lr:3e-4
+working data size > 1000 updated data
+working batch 64 128
+optimization steps: ~320
+
+
+
+BC:
+
+working lr: 1e-4
+working data size > 1000 cumulative data
+working batch 64 128
+optimiaztion steps: ~2000-3000
+
+1 .Use MPC action as real action can work in the early stage up to ~800 real return, however bc can't follow (only ~300) since the real action distribution is not same as bc.
+
+Try use bc action as real
+
