@@ -30,6 +30,7 @@ from baselines.common.mpi_moments import mpi_moments
 
 
 from mlp_policy import MlpPolicy
+from ppo_bc_policy import MlpPolicy_bc
 
 from mpi4py import MPI
 from collections import deque
@@ -38,7 +39,7 @@ from collections import deque
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
-def traj_segment_generator(pi, env, horizon, stochastic=True):
+def traj_segment_generator_old(pi, env, horizon, stochastic=True):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     ob = env.reset()
@@ -60,7 +61,7 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
     while True:
         prevac = ac
 
-        ac, vpred = pi.act(stochastic, ob)
+        ac, vpred = pi.act(ob)
 
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
@@ -104,6 +105,70 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
 
 
         t += 1
+
+def traj_segment_generator(pi, env, horizon, stochastic=True):
+    t = 0
+    ac = env.action_space.sample() # not used, just so we have the datatype
+    ob = env.reset()
+    new = True # marks if we're on first timestep of an episode
+
+    cur_ep_ret = 0 # return in current episode
+    cur_ep_len = 0 # len of current episode
+    ep_rets = [] # returns of completed episodes in this segment
+    ep_lens = [] # lengths of ...
+
+    # Initialize history arrays
+    obs = np.array([ob for _ in range(horizon)])
+    nxt_obs = np.array([ob for _ in range(horizon)])
+
+    rews = np.zeros(horizon, 'float32')
+    vpreds = np.zeros(horizon, 'float32')
+    news = np.zeros(horizon, 'int32')
+    acs = np.array([ac for _ in range(horizon)])
+    prevacs = acs.copy()
+
+    while True:
+        prevac = ac
+
+        ac, vpred = pi.act(ob)
+
+
+        obs[t] = ob
+        vpreds[t] = vpred
+        news[t] = new
+        acs[t] = ac
+        prevacs[t] = prevac
+
+        ob, rew, done, _ = env.step(ac)
+        new = False
+
+        nxt_obs[t] = ob
+        rews[t] = rew
+
+        cur_ep_ret += rew
+        cur_ep_len += 1
+
+
+        if t > 0 and t % (horizon-1) == 0:
+            ep_rets.append(cur_ep_ret)
+            ep_lens.append(cur_ep_len)
+
+
+        if t > 0 and t % (horizon-1) == 0:
+            print("ep_rets ", ep_rets)
+            print("ep_lens ", ep_lens)
+
+            break
+
+        t += 1
+
+    sec = {"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
+    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+
+    
+    return  sec
+
 
 def add_vtarg_and_adv(seg, gamma, lam):
     """
@@ -195,7 +260,7 @@ def train_PG(exp_name='',
     data_buffer_ppo = DataBuffer_general(10000, 4)
 
 
-    timesteps_per_actorbatch=2048
+    timesteps_per_actorbatch=1000
     max_timesteps = 10000000
     clip_param=0.2
     entcoeff=0.0
@@ -208,15 +273,16 @@ def train_PG(exp_name='',
     callback=None # you can do anything in the callback, since it takes locals(), globals()
     adam_epsilon=1e-5
 
-    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, adam_epsilon=adam_epsilon)
+    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
+    # policy_nn = MlpPolicy(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff, adam_epsilon=adam_epsilon)
 
     tf.global_variables_initializer().run() #pylint: disable=E1101
 
 
     # Prepare for rollouts
     # ----------------------------------------
-    seg_gen = traj_segment_generator(policy_nn, env, timesteps_per_actorbatch)
 
+    seg_gen = traj_segment_generator_old(policy_nn, env, timesteps_per_actorbatch)
 
     episodes_so_far = 0
     timesteps_so_far = 0
@@ -224,6 +290,7 @@ def train_PG(exp_name='',
     tstart = time.time()
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
+
 
     while True:
 
@@ -241,7 +308,9 @@ def train_PG(exp_name='',
         logger.log("********** Iteration %i ************"%iters_so_far)
 
         data_buffer_ppo.clear()
-        seg = seg_gen.__next__()
+        seg = traj_segment_generator(policy_nn, env, timesteps_per_actorbatch)
+        # seg = seg_gen.__next__()
+
         add_vtarg_and_adv(seg, gamma, lam)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
@@ -269,7 +338,7 @@ def train_PG(exp_name='',
             for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
                 sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = data_buffer_ppo.sample(optim_batchsize)
 
-                newlosses = policy_nn.lossandupdate(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
                 losses.append(newlosses)
 
             # logger.log(fmt_row(13, np.mean(losses, axis=0)))
@@ -337,7 +406,7 @@ def main():
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--n_iter', '-n', type=int, default=1000)
-    parser.add_argument('--batch_size', '-b', type=int, default=2048)
+    parser.add_argument('--batch_size', '-b', type=int, default=1000)
     parser.add_argument('--ep_len', '-ep', type=float, default=1000)
     parser.add_argument('--learning_rate', '-lr', type=float, default=3e-4)
     parser.add_argument('--reward_to_go', '-rtg', action='store_true')

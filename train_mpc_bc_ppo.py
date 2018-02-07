@@ -8,6 +8,8 @@ import time
 import logz
 import os
 import copy
+import pickle
+
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
 from data_buffer import DataBuffer, DataBuffer_general 
@@ -31,7 +33,7 @@ from baselines import logger
 
 TEST_EPOCH = 5000
 BATCH_SIZE_BC = 128
-BC_BUFFER_SIZE = 1000
+BC_BUFFER_SIZE = 2000
 LOAD_MODEL = False
 CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 
@@ -40,7 +42,7 @@ CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
-def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, horizon):
+def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, direct_mpc, bc_ppo_mpc, horizon):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     ob = env.reset()
@@ -62,19 +64,28 @@ def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_bu
     prevacs = acs.copy()
     mpcacs = acs.copy()
 
+    if bc_ppo_mpc:
+        print("Using mpc-bc-ppo")
+    else:
+        print("Using normal mpc")
+
+    print("Direct_mpc: ", direct_mpc)
+
     while True:
         prevac = ac
 
         ac, vpred = pi.act(ob)
 
         if mpc:
-            if bc_data_buffer.size > 2000:
+            if bc_ppo_mpc:
                 mpc_ac = mpc_controller_bc_ppo.get_action(ob)
             else:
                 mpc_ac = mpc_controller.get_action(ob)
         else:
             mpc_ac = copy.deepcopy(ac)
 
+        if direct_mpc:
+            ac = mpc_ac
 
         obs[t] = ob
         vpreds[t] = vpred
@@ -146,6 +157,8 @@ def behavioral_cloning_eval(sess, env, bc_ppo_network, env_horizon):
 
     print("return: ", returns)
 
+    return returns
+
 def train(env, 
          cost_fn,
          logdir=None,
@@ -170,7 +183,8 @@ def train(env,
          optim_epochs=10,
          optim_batchsize=64,
          schedule='linear',
-         optim_stepsize=3e-4,
+         bc_lr=1e-3,
+         ppo_lr=3e-4,
          timesteps_per_actorbatch=1000,
          MPC = True,
          BEHAVIORAL_CLONING = True,
@@ -194,7 +208,7 @@ def train(env,
     random_controller = RandomController(env)
     model_data_buffer = DataBuffer()
 
-    ppo_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 6)
+    ppo_data_buffer = DataBuffer_general(10000, 4)
     bc_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 2)
 
     # random sample path
@@ -240,7 +254,7 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=64, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
+    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
     mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
                                    dyn_model=dyn_model, 
@@ -282,6 +296,8 @@ def train(env,
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
     max_timesteps = num_paths_onpol * env_horizon
+    bc = False
+    bc_ppo_mpc = False
 
     for itr in range(onpol_iters):
 
@@ -292,14 +308,38 @@ def train(env,
         if schedule == 'constant':
             cur_lrmult = 1.0
         elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+            # cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
+            cur_lrmult = 1.0
+
+        print("bc learning_rate: ",  bc_lr)
+        print("ppo learning_rate: ",  ppo_lr)
 
         # saver.save(sess, CHECKPOINT_DIR)
-        behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
+        bc_return = behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
+
+        if bc_return>100:
+            bc_ppo_mpc = True
+        else:
+            bc_ppo_mpc = False
 
         ppo_data_buffer.clear()
-        seg = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, MPC, env_horizon)
+
+        if (itr % 2 != 0 and bc_ppo_mpc) or not MPC:
+            direct_mpc = False
+        else:
+            direct_mpc = True
+
+        seg = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, MPC, direct_mpc, bc_ppo_mpc, env_horizon)
         add_vtarg_and_adv(seg, gamma, lam)
+
+        # check if seg is good
+        ep_lengths = seg["ep_lens"]
+        returns =  seg["ep_rets"]
+        if np.mean(returns) > 100:
+            bc = True
+        else:
+            bc = False
+        print("BEHAVIORAL_CLONING: ", BEHAVIORAL_CLONING and bc)
 
 
         ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = seg["ob"], seg["ac"], seg["mpcac"], seg["rew"], seg["nxt_ob"], seg["adv"], seg["tdlamret"]
@@ -308,9 +348,10 @@ def train(env,
 
         for n in range(len(ob)):
             if PPO:
-                ppo_data_buffer.add((ob[n], ac[n], rew[n], nxt_ob[n], atarg[n], tdlamret[n]))
-            if BEHAVIORAL_CLONING:
-                bc_data_buffer.add((ob[n], mpcac[n]))
+                ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
+
+            if BEHAVIORAL_CLONING and bc:
+                bc_data_buffer.add([ob[n], mpcac[n]])
             if MPC:
                 model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
 
@@ -328,15 +369,18 @@ def train(env,
             # for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
 
             if PPO:
-                sample_ob_no, sample_ac_na, sample_rew, sample_nxt_ob_no, sample_adv_n, sample_b_n_target = ppo_data_buffer.sample(optim_batchsize)
-                newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, optim_stepsize*cur_lrmult)
+                sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = ppo_data_buffer.sample(optim_batchsize)
+                newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, ppo_lr*cur_lrmult)
                 # losses.append(newlosses)
 
-            if BEHAVIORAL_CLONING:
+            if BEHAVIORAL_CLONING and bc:
                 sample_ob_no, sample_ac_na = bc_data_buffer.sample(optim_batchsize)
-                policy_nn.update_bc(sample_ob_no, sample_ac_na, optim_stepsize*cur_lrmult)
+                # print("sample_ob_no", sample_ob_no.shape)
+                # print("sample_ac_na", sample_ac_na.shape)
 
-            if op_ep % (100) == 0 and BEHAVIORAL_CLONING:
+                policy_nn.update_bc(sample_ob_no, sample_ac_na, bc_lr*cur_lrmult)
+
+            if op_ep % (100) == 0 and BEHAVIORAL_CLONING and bc:
                 print('epcho: ', op_ep)
                 behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
@@ -351,8 +395,13 @@ def train(env,
         timesteps_so_far += sum(lens)
         iters_so_far += 1
 
-        ep_lengths = seg["ep_lens"]
-        returns =  seg["ep_rets"]
+
+
+        # if np.mean(returns) > 1000:
+        #     filename = "seg_data.pkl"
+        #     pickle.dump(seg, open(filename, 'wb'))
+        #     print("saved", filename)
+
 
         logz.log_tabular("Time", time.time() - start)
         logz.log_tabular("Iteration", iters_so_far)
@@ -384,23 +433,25 @@ def main():
     parser.add_argument('--batch_size', '-b', type=int, default=512)
 
     # BC and PPO Training args
-    parser.add_argument('--optim_stepsize', '-olr', type=float, default=1e-3)
+    parser.add_argument('--bc_lr', '-bc_lr', type=float, default=1e-3)
+    parser.add_argument('--ppo_lr', '-ppo_lr', type=float, default=3e-4)
+
     parser.add_argument('--clip_param', '-cp', type=float, default=0.2)
     parser.add_argument('--gamma', '-g', type=float, default=0.99)
     parser.add_argument('--entcoeff', '-ent', type=float, default=0.0)
     parser.add_argument('--lam', type=float, default=0.95)
-    parser.add_argument('--optim_epochs', type=int, default=2000)
+    parser.add_argument('--optim_epochs', type=int, default=500)
     parser.add_argument('--optim_batchsize', type=int, default=128)
     parser.add_argument('--schedule', type=str, default='linear')
     parser.add_argument('--timesteps_per_actorbatch', '-b2', type=int, default=1000)
     # Data collection
     parser.add_argument('--random_paths', '-r', type=int, default=10)
     parser.add_argument('--onpol_paths', '-d', type=int, default=1)
-    parser.add_argument('--simulated_paths', '-sp', type=int, default=1000)
+    parser.add_argument('--simulated_paths', '-sp', type=int, default=400)
     parser.add_argument('--ep_len', '-ep', type=int, default=1000)
     # Neural network architecture args
     parser.add_argument('--n_layers', '-l', type=int, default=2)
-    parser.add_argument('--size', '-s', type=int, default=500)
+    parser.add_argument('--size', '-s', type=int, default=256)
     # MPC Controller
     parser.add_argument('--mpc_horizon', '-m', type=int, default=10)
 
@@ -453,7 +504,8 @@ def main():
                  optim_epochs = args.optim_epochs,
                  optim_batchsize = args.optim_batchsize,
                  schedule = args.schedule,
-                 optim_stepsize = args.optim_stepsize,
+                 bc_lr = args.bc_lr,
+                 ppo_lr = args.ppo_lr,
                  timesteps_per_actorbatch = args.timesteps_per_actorbatch,
                  MPC = args.mpc,
                  BEHAVIORAL_CLONING = args.bc,

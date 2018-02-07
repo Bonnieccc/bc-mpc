@@ -109,8 +109,8 @@ class MlpPolicy_bc(object):
 
 
         # bc loss
-        print("self.ac", self.ac)
-        print("self.ac_mean", self.ac_mean)
+        # print("self.ac", self.ac)
+        # print("self.ac_mean", self.ac_mean)
         bc_loss = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.ac, self.ac_mean))))
 
         ppo_loss = pol_surr + pol_entpen + vf_loss
@@ -119,7 +119,7 @@ class MlpPolicy_bc(object):
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent", "bc_loss"]
 
 
-        var_list = var_list = self.get_trainable_variables()
+        var_list = self.get_trainable_variables()
 
         return ppo_loss, bc_loss, loss_names, losses, var_list
 
@@ -171,7 +171,7 @@ class MlpPolicy_bc(object):
         self.sess.run([self.assign_old_eq_new_op])
 
 
-    def act(self, ob, stochastic=False):
+    def act(self, ob, stochastic=True):
         
         if ob.ndim == 1:
         # ensure dim is [?, s_dim]
@@ -186,6 +186,7 @@ class MlpPolicy_bc(object):
 
     def get_old_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.old_pi_scope)
+
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.pi_scope)
 

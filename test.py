@@ -1,8 +1,9 @@
 import numpy as np
+from data_buffer import DataBuffer, DataBuffer_general 
 
-state = np.zeros([3, 5])
-print("state.shape", state.shape)
+data_buffer = DataBuffer_general(5 ,2)
 
-states = np.tile(state, [1000, 1])
-print("states.shape", states.shape)
-
+for i in range(10):
+    data_buffer.add((i, i+1))
+    print(data_buffer.size)
+    print(data_buffer.sample(10))
