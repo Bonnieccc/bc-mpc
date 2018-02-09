@@ -42,6 +42,68 @@ CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
+def traj_segment_generator_ppo(pi, env, horizon, stochastic=True):
+    t = 0
+    ac = env.action_space.sample() # not used, just so we have the datatype
+    ob = env.reset()
+    new = True # marks if we're on first timestep of an episode
+
+    cur_ep_ret = 0 # return in current episode
+    cur_ep_len = 0 # len of current episode
+    ep_rets = [] # returns of completed episodes in this segment
+    ep_lens = [] # lengths of ...
+
+    # Initialize history arrays
+    obs = np.array([ob for _ in range(horizon)])
+    nxt_obs = np.array([ob for _ in range(horizon)])
+
+    rews = np.zeros(horizon, 'float32')
+    vpreds = np.zeros(horizon, 'float32')
+    news = np.zeros(horizon, 'int32')
+    acs = np.array([ac for _ in range(horizon)])
+    prevacs = acs.copy()
+
+    while True:
+        prevac = ac
+
+        ac, vpred = pi.act(ob, stochastic)
+
+
+        obs[t] = ob
+        vpreds[t] = vpred
+        news[t] = new
+        acs[t] = ac
+        prevacs[t] = prevac
+
+        ob, rew, done, _ = env.step(ac)
+        new = False
+
+        nxt_obs[t] = ob
+        rews[t] = rew
+
+        cur_ep_ret += rew
+        cur_ep_len += 1
+
+
+        if t > 0 and t % (horizon-1) == 0:
+            ep_rets.append(cur_ep_ret)
+            ep_lens.append(cur_ep_len)
+
+
+        if t > 0 and t % (horizon-1) == 0:
+            print("PPO ep_rets ", ep_rets)
+
+            break
+
+        t += 1
+
+    sec = {"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
+    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+
+    
+    return  sec
+
 def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, direct_mpc, bc_ppo_mpc, horizon):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
@@ -315,20 +377,22 @@ def train(env,
         print("ppo learning_rate: ",  ppo_lr)
 
         # saver.save(sess, CHECKPOINT_DIR)
-        bc_return = behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
+        if BEHAVIORAL_CLONING:
+            bc_return = behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
 
-        if bc_return>100:
-            bc_ppo_mpc = True
-        else:
-            bc_ppo_mpc = False
+            if bc_return>100:
+                bc_ppo_mpc = True
+            else:
+                bc_ppo_mpc = False
 
-        ppo_data_buffer.clear()
 
         if (itr % 2 != 0 and bc_ppo_mpc) or not MPC:
             direct_mpc = False
         else:
             direct_mpc = True
 
+        ################## mpc seg data
+        bc_ppo_mpc = True
         seg = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, MPC, direct_mpc, bc_ppo_mpc, env_horizon)
         add_vtarg_and_adv(seg, gamma, lam)
 
@@ -341,9 +405,7 @@ def train(env,
             bc = False
         print("BEHAVIORAL_CLONING: ", BEHAVIORAL_CLONING and bc)
 
-
         ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = seg["ob"], seg["ac"], seg["mpcac"], seg["rew"], seg["nxt_ob"], seg["adv"], seg["tdlamret"]
-        vpredbefore = seg["vpred"] # predicted value function before udpate
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
         for n in range(len(ob)):
@@ -354,6 +416,23 @@ def train(env,
                 bc_data_buffer.add([ob[n], mpcac[n]])
             if MPC:
                 model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
+
+
+
+        ################## ppo seg data
+        if PPO:
+            ppo_data_buffer.clear()
+
+            ppo_seg = traj_segment_generator_ppo(policy_nn, env, env_horizon)
+            add_vtarg_and_adv(ppo_seg, gamma, lam)
+
+            ob, ac, rew, nxt_ob, atarg, tdlamret = \
+            ppo_seg["ob"], ppo_seg["ac"], ppo_seg["rew"], ppo_seg["nxt_ob"], ppo_seg["adv"], ppo_seg["tdlamret"]
+
+            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+
+            for n in range(len(ob)):
+                    ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
 
         print("ppo_data_buffer size", ppo_data_buffer.size)
         print("bc_data_buffer size", bc_data_buffer.size)

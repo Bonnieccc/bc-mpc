@@ -1,0 +1,2439 @@
+-------- env info --------
+observation_space:  (20,)
+action_space:  (6,)
+BEHAVIORAL_CLONING:  False
+PPO:  True
+ 
+collecting random data .....  
+model data buffer size:  10000
+Could not find old checkpoint
+onpol_iters:  0
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [-99.55589544467483]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-750.2453841993646]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  11000
+-------------------------------------
+|            Time |             268 |
+|       Iteration |               1 |
+|   AverageReturn |           -99.6 |
+|       StdReturn |               0 |
+|       MaxReturn |           -99.6 |
+|       MinReturn |           -99.6 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           1e+03 |
+-------------------------------------
+onpol_iters:  1
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [140.42638066188061]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-621.4513877407275]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  12000
+-------------------------------------
+|            Time |             535 |
+|       Iteration |               2 |
+|   AverageReturn |             140 |
+|       StdReturn |               0 |
+|       MaxReturn |             140 |
+|       MinReturn |             140 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           2e+03 |
+-------------------------------------
+onpol_iters:  2
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [188.6780219810479]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-545.3966522277533]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  13000
+-------------------------------------
+|            Time |             802 |
+|       Iteration |               3 |
+|   AverageReturn |             189 |
+|       StdReturn |               0 |
+|       MaxReturn |             189 |
+|       MinReturn |             189 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           3e+03 |
+-------------------------------------
+onpol_iters:  3
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [259.1171330930895]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-623.3758246409274]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  14000
+-------------------------------------
+|            Time |        1.06e+03 |
+|       Iteration |               4 |
+|   AverageReturn |             259 |
+|       StdReturn |               0 |
+|       MaxReturn |             259 |
+|       MinReturn |             259 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           4e+03 |
+-------------------------------------
+onpol_iters:  4
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [333.83310097096637]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-438.1588216676154]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  15000
+-------------------------------------
+|            Time |        1.33e+03 |
+|       Iteration |               5 |
+|   AverageReturn |             334 |
+|       StdReturn |               0 |
+|       MaxReturn |             334 |
+|       MinReturn |             334 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           5e+03 |
+-------------------------------------
+onpol_iters:  5
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [505.66976288693263]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-422.7483388922929]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  16000
+-------------------------------------
+|            Time |         1.6e+03 |
+|       Iteration |               6 |
+|   AverageReturn |             506 |
+|       StdReturn |               0 |
+|       MaxReturn |             506 |
+|       MinReturn |             506 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           6e+03 |
+-------------------------------------
+onpol_iters:  6
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [752.1367050054604]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-404.677350313451]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  17000
+-------------------------------------
+|            Time |        1.86e+03 |
+|       Iteration |               7 |
+|   AverageReturn |             752 |
+|       StdReturn |               0 |
+|       MaxReturn |             752 |
+|       MinReturn |             752 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           7e+03 |
+-------------------------------------
+onpol_iters:  7
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [730.847628313403]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-105.95422008063655]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  18000
+-------------------------------------
+|            Time |        2.13e+03 |
+|       Iteration |               8 |
+|   AverageReturn |             731 |
+|       StdReturn |               0 |
+|       MaxReturn |             731 |
+|       MinReturn |             731 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           8e+03 |
+-------------------------------------
+onpol_iters:  8
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [694.3432659614062]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-326.9830228317622]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  19000
+-------------------------------------
+|            Time |         2.4e+03 |
+|       Iteration |               9 |
+|   AverageReturn |             694 |
+|       StdReturn |               0 |
+|       MaxReturn |             694 |
+|       MinReturn |             694 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           9e+03 |
+-------------------------------------
+onpol_iters:  9
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [807.1750590953586]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-227.090035546964]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  20000
+-------------------------------------
+|            Time |        2.66e+03 |
+|       Iteration |              10 |
+|   AverageReturn |             807 |
+|       StdReturn |               0 |
+|       MaxReturn |             807 |
+|       MinReturn |             807 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           1e+04 |
+-------------------------------------
+onpol_iters:  10
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [823.4994656257091]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-510.872494465279]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  21000
+-------------------------------------
+|            Time |        2.93e+03 |
+|       Iteration |              11 |
+|   AverageReturn |             823 |
+|       StdReturn |               0 |
+|       MaxReturn |             823 |
+|       MinReturn |             823 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.1e+04 |
+-------------------------------------
+onpol_iters:  11
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1023.7025009600628]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-97.92289735044024]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  22000
+-------------------------------------
+|            Time |         3.2e+03 |
+|       Iteration |              12 |
+|   AverageReturn |        1.02e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.02e+03 |
+|       MinReturn |        1.02e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.2e+04 |
+-------------------------------------
+onpol_iters:  12
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [996.7820925366691]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-78.28408467720428]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  23000
+-------------------------------------
+|            Time |        3.46e+03 |
+|       Iteration |              13 |
+|   AverageReturn |             997 |
+|       StdReturn |               0 |
+|       MaxReturn |             997 |
+|       MinReturn |             997 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.3e+04 |
+-------------------------------------
+onpol_iters:  13
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [910.7206880913109]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [112.89057677015617]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  24000
+-------------------------------------
+|            Time |        3.73e+03 |
+|       Iteration |              14 |
+|   AverageReturn |             911 |
+|       StdReturn |               0 |
+|       MaxReturn |             911 |
+|       MinReturn |             911 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.4e+04 |
+-------------------------------------
+onpol_iters:  14
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [816.105126351724]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [226.01479731548778]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  25000
+-------------------------------------
+|            Time |           4e+03 |
+|       Iteration |              15 |
+|   AverageReturn |             816 |
+|       StdReturn |               0 |
+|       MaxReturn |             816 |
+|       MinReturn |             816 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.5e+04 |
+-------------------------------------
+onpol_iters:  15
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [982.2915752492777]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [201.98472787954339]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  26000
+-------------------------------------
+|            Time |        4.26e+03 |
+|       Iteration |              16 |
+|   AverageReturn |             982 |
+|       StdReturn |               0 |
+|       MaxReturn |             982 |
+|       MinReturn |             982 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.6e+04 |
+-------------------------------------
+onpol_iters:  16
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1025.2631487511985]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [194.41459556125596]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  27000
+-------------------------------------
+|            Time |        4.53e+03 |
+|       Iteration |              17 |
+|   AverageReturn |        1.03e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.03e+03 |
+|       MinReturn |        1.03e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.7e+04 |
+-------------------------------------
+onpol_iters:  17
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [883.3955931988971]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [203.94973808724023]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  28000
+-------------------------------------
+|            Time |         4.8e+03 |
+|       Iteration |              18 |
+|   AverageReturn |             883 |
+|       StdReturn |               0 |
+|       MaxReturn |             883 |
+|       MinReturn |             883 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.8e+04 |
+-------------------------------------
+onpol_iters:  18
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [983.7891418817713]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [63.87174589372574]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  29000
+-------------------------------------
+|            Time |        5.06e+03 |
+|       Iteration |              19 |
+|   AverageReturn |             984 |
+|       StdReturn |               0 |
+|       MaxReturn |             984 |
+|       MinReturn |             984 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         1.9e+04 |
+-------------------------------------
+onpol_iters:  19
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [955.8457621901832]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [348.47091342246216]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  30000
+-------------------------------------
+|            Time |        5.33e+03 |
+|       Iteration |              20 |
+|   AverageReturn |             956 |
+|       StdReturn |               0 |
+|       MaxReturn |             956 |
+|       MinReturn |             956 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           2e+04 |
+-------------------------------------
+onpol_iters:  20
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1070.5834938548985]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [3.389662028975519]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  31000
+-------------------------------------
+|            Time |         5.6e+03 |
+|       Iteration |              21 |
+|   AverageReturn |        1.07e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.07e+03 |
+|       MinReturn |        1.07e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.1e+04 |
+-------------------------------------
+onpol_iters:  21
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1014.6625879559786]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [553.5529426836008]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  32000
+-------------------------------------
+|            Time |        5.86e+03 |
+|       Iteration |              22 |
+|   AverageReturn |        1.01e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.01e+03 |
+|       MinReturn |        1.01e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.2e+04 |
+-------------------------------------
+onpol_iters:  22
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [906.2044750974919]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [551.1409435327482]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  33000
+-------------------------------------
+|            Time |        6.13e+03 |
+|       Iteration |              23 |
+|   AverageReturn |             906 |
+|       StdReturn |               0 |
+|       MaxReturn |             906 |
+|       MinReturn |             906 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.3e+04 |
+-------------------------------------
+onpol_iters:  23
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1062.2508791219398]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [754.1603321951188]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  34000
+-------------------------------------
+|            Time |        6.39e+03 |
+|       Iteration |              24 |
+|   AverageReturn |        1.06e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.06e+03 |
+|       MinReturn |        1.06e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.4e+04 |
+-------------------------------------
+onpol_iters:  24
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1064.5461582676626]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [644.7799118229776]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  35000
+-------------------------------------
+|            Time |        6.66e+03 |
+|       Iteration |              25 |
+|   AverageReturn |        1.06e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.06e+03 |
+|       MinReturn |        1.06e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.5e+04 |
+-------------------------------------
+onpol_iters:  25
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1114.6519068029997]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [371.72318269968713]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  36000
+-------------------------------------
+|            Time |        6.93e+03 |
+|       Iteration |              26 |
+|   AverageReturn |        1.11e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.11e+03 |
+|       MinReturn |        1.11e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.6e+04 |
+-------------------------------------
+onpol_iters:  26
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1100.3707649565738]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [982.7298144129637]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  37000
+-------------------------------------
+|            Time |         7.2e+03 |
+|       Iteration |              27 |
+|   AverageReturn |         1.1e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |         1.1e+03 |
+|       MinReturn |         1.1e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.7e+04 |
+-------------------------------------
+onpol_iters:  27
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1083.6361740851078]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [760.5282214851723]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  38000
+-------------------------------------
+|            Time |        7.46e+03 |
+|       Iteration |              28 |
+|   AverageReturn |        1.08e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.08e+03 |
+|       MinReturn |        1.08e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.8e+04 |
+-------------------------------------
+onpol_iters:  28
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [910.3045338836996]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [826.3339088812696]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  39000
+-------------------------------------
+|            Time |        7.73e+03 |
+|       Iteration |              29 |
+|   AverageReturn |             910 |
+|       StdReturn |               0 |
+|       MaxReturn |             910 |
+|       MinReturn |             910 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         2.9e+04 |
+-------------------------------------
+onpol_iters:  29
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1045.5697977466561]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-645.0510730508989]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  40000
+-------------------------------------
+|            Time |        7.99e+03 |
+|       Iteration |              30 |
+|   AverageReturn |        1.05e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.05e+03 |
+|       MinReturn |        1.05e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           3e+04 |
+-------------------------------------
+onpol_iters:  30
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1026.8136582947086]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [918.8316457804688]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  41000
+-------------------------------------
+|            Time |        8.26e+03 |
+|       Iteration |              31 |
+|   AverageReturn |        1.03e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.03e+03 |
+|       MinReturn |        1.03e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.1e+04 |
+-------------------------------------
+onpol_iters:  31
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1053.3554963564375]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1024.740130789318]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  42000
+-------------------------------------
+|            Time |        8.53e+03 |
+|       Iteration |              32 |
+|   AverageReturn |        1.05e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.05e+03 |
+|       MinReturn |        1.05e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.2e+04 |
+-------------------------------------
+onpol_iters:  32
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1078.0821113391573]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [891.5184163177391]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  43000
+-------------------------------------
+|            Time |        8.79e+03 |
+|       Iteration |              33 |
+|   AverageReturn |        1.08e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.08e+03 |
+|       MinReturn |        1.08e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.3e+04 |
+-------------------------------------
+onpol_iters:  33
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1110.9866135731029]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-13.816820458947127]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  44000
+-------------------------------------
+|            Time |        9.06e+03 |
+|       Iteration |              34 |
+|   AverageReturn |        1.11e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.11e+03 |
+|       MinReturn |        1.11e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.4e+04 |
+-------------------------------------
+onpol_iters:  34
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1086.9938731544469]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1012.5931712879305]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  45000
+-------------------------------------
+|            Time |        9.32e+03 |
+|       Iteration |              35 |
+|   AverageReturn |        1.09e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.09e+03 |
+|       MinReturn |        1.09e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.5e+04 |
+-------------------------------------
+onpol_iters:  35
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1130.3327262315086]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-149.23909070182634]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  46000
+-------------------------------------
+|            Time |        9.59e+03 |
+|       Iteration |              36 |
+|   AverageReturn |        1.13e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.13e+03 |
+|       MinReturn |        1.13e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.6e+04 |
+-------------------------------------
+onpol_iters:  36
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1076.7604151424096]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1010.3157446295215]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  47000
+-------------------------------------
+|            Time |        9.85e+03 |
+|       Iteration |              37 |
+|   AverageReturn |        1.08e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.08e+03 |
+|       MinReturn |        1.08e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.7e+04 |
+-------------------------------------
+onpol_iters:  37
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1135.597063736766]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1085.0612718926009]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  48000
+-------------------------------------
+|            Time |        1.01e+04 |
+|       Iteration |              38 |
+|   AverageReturn |        1.14e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.14e+03 |
+|       MinReturn |        1.14e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.8e+04 |
+-------------------------------------
+onpol_iters:  38
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [928.8861099127328]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-792.4955761231259]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  49000
+-------------------------------------
+|            Time |        1.04e+04 |
+|       Iteration |              39 |
+|   AverageReturn |             929 |
+|       StdReturn |               0 |
+|       MaxReturn |             929 |
+|       MinReturn |             929 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         3.9e+04 |
+-------------------------------------
+onpol_iters:  39
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1148.612721674717]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1006.9911865603331]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  50000
+-------------------------------------
+|            Time |        1.07e+04 |
+|       Iteration |              40 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           4e+04 |
+-------------------------------------
+onpol_iters:  40
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1338.6379411622572]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-518.1408283587169]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  51000
+-------------------------------------
+|            Time |        1.09e+04 |
+|       Iteration |              41 |
+|   AverageReturn |        1.34e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.34e+03 |
+|       MinReturn |        1.34e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.1e+04 |
+-------------------------------------
+onpol_iters:  41
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1106.2795950079703]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1018.5918047866987]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  52000
+-------------------------------------
+|            Time |        1.12e+04 |
+|       Iteration |              42 |
+|   AverageReturn |        1.11e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.11e+03 |
+|       MinReturn |        1.11e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.2e+04 |
+-------------------------------------
+onpol_iters:  42
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [967.0218917044366]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1044.0674558102219]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  53000
+-------------------------------------
+|            Time |        1.14e+04 |
+|       Iteration |              43 |
+|   AverageReturn |             967 |
+|       StdReturn |               0 |
+|       MaxReturn |             967 |
+|       MinReturn |             967 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.3e+04 |
+-------------------------------------
+onpol_iters:  43
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1307.1264167780455]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [973.5033437508056]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  54000
+-------------------------------------
+|            Time |        1.17e+04 |
+|       Iteration |              44 |
+|   AverageReturn |        1.31e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.31e+03 |
+|       MinReturn |        1.31e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.4e+04 |
+-------------------------------------
+onpol_iters:  44
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1128.629378428906]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1127.2233135895267]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  55000
+-------------------------------------
+|            Time |         1.2e+04 |
+|       Iteration |              45 |
+|   AverageReturn |        1.13e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.13e+03 |
+|       MinReturn |        1.13e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.5e+04 |
+-------------------------------------
+onpol_iters:  45
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1150.3883215601245]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1027.5307860333717]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  56000
+-------------------------------------
+|            Time |        1.22e+04 |
+|       Iteration |              46 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.6e+04 |
+-------------------------------------
+onpol_iters:  46
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1125.2208151223274]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1122.8375959622463]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  57000
+-------------------------------------
+|            Time |        1.25e+04 |
+|       Iteration |              47 |
+|   AverageReturn |        1.13e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.13e+03 |
+|       MinReturn |        1.13e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.7e+04 |
+-------------------------------------
+onpol_iters:  47
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1045.443423766626]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1280.5531594620134]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  58000
+-------------------------------------
+|            Time |        1.28e+04 |
+|       Iteration |              48 |
+|   AverageReturn |        1.05e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.05e+03 |
+|       MinReturn |        1.05e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.8e+04 |
+-------------------------------------
+onpol_iters:  48
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [915.9227181805544]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1173.8902130215436]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  59000
+-------------------------------------
+|            Time |         1.3e+04 |
+|       Iteration |              49 |
+|   AverageReturn |             916 |
+|       StdReturn |               0 |
+|       MaxReturn |             916 |
+|       MinReturn |             916 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         4.9e+04 |
+-------------------------------------
+onpol_iters:  49
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1211.2757143800116]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1262.696356375119]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  60000
+-------------------------------------
+|            Time |        1.33e+04 |
+|       Iteration |              50 |
+|   AverageReturn |        1.21e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.21e+03 |
+|       MinReturn |        1.21e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           5e+04 |
+-------------------------------------
+onpol_iters:  50
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1215.668811157156]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1169.7119075116323]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  61000
+-------------------------------------
+|            Time |        1.36e+04 |
+|       Iteration |              51 |
+|   AverageReturn |        1.22e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.22e+03 |
+|       MinReturn |        1.22e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.1e+04 |
+-------------------------------------
+onpol_iters:  51
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1049.566984141718]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1474.474871572136]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  62000
+-------------------------------------
+|            Time |        1.38e+04 |
+|       Iteration |              52 |
+|   AverageReturn |        1.05e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.05e+03 |
+|       MinReturn |        1.05e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.2e+04 |
+-------------------------------------
+onpol_iters:  52
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1216.8920783377284]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1359.0318013937615]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  63000
+-------------------------------------
+|            Time |        1.41e+04 |
+|       Iteration |              53 |
+|   AverageReturn |        1.22e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.22e+03 |
+|       MinReturn |        1.22e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.3e+04 |
+-------------------------------------
+onpol_iters:  53
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1210.9578462134684]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1477.7100392180691]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  64000
+-------------------------------------
+|            Time |        1.44e+04 |
+|       Iteration |              54 |
+|   AverageReturn |        1.21e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.21e+03 |
+|       MinReturn |        1.21e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.4e+04 |
+-------------------------------------
+onpol_iters:  54
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1122.0647428541488]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1516.3796241122723]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  65000
+-------------------------------------
+|            Time |        1.46e+04 |
+|       Iteration |              55 |
+|   AverageReturn |        1.12e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.12e+03 |
+|       MinReturn |        1.12e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.5e+04 |
+-------------------------------------
+onpol_iters:  55
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1070.7563346932855]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1128.1379867212347]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  66000
+-------------------------------------
+|            Time |        1.49e+04 |
+|       Iteration |              56 |
+|   AverageReturn |        1.07e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.07e+03 |
+|       MinReturn |        1.07e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.6e+04 |
+-------------------------------------
+onpol_iters:  56
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1153.5254345495707]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1449.8863050227353]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  67000
+-------------------------------------
+|            Time |        1.52e+04 |
+|       Iteration |              57 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.7e+04 |
+-------------------------------------
+onpol_iters:  57
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [967.5214913751073]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1567.7384382598725]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  68000
+-------------------------------------
+|            Time |        1.54e+04 |
+|       Iteration |              58 |
+|   AverageReturn |             968 |
+|       StdReturn |               0 |
+|       MaxReturn |             968 |
+|       MinReturn |             968 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.8e+04 |
+-------------------------------------
+onpol_iters:  58
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1183.0971938117502]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1564.516641445734]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  69000
+-------------------------------------
+|            Time |        1.57e+04 |
+|       Iteration |              59 |
+|   AverageReturn |        1.18e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.18e+03 |
+|       MinReturn |        1.18e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         5.9e+04 |
+-------------------------------------
+onpol_iters:  59
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1149.7188122267416]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1615.1166549504565]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  70000
+-------------------------------------
+|            Time |         1.6e+04 |
+|       Iteration |              60 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           6e+04 |
+-------------------------------------
+onpol_iters:  60
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1097.437501999727]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [-1001.7499098449904]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  71000
+-------------------------------------
+|            Time |        1.62e+04 |
+|       Iteration |              61 |
+|   AverageReturn |         1.1e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |         1.1e+03 |
+|       MinReturn |         1.1e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.1e+04 |
+-------------------------------------
+onpol_iters:  61
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1097.3792355674464]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1366.8814562354855]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  72000
+-------------------------------------
+|            Time |        1.65e+04 |
+|       Iteration |              62 |
+|   AverageReturn |         1.1e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |         1.1e+03 |
+|       MinReturn |         1.1e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.2e+04 |
+-------------------------------------
+onpol_iters:  62
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1266.5937882869919]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1400.5955367083593]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  73000
+-------------------------------------
+|            Time |        1.68e+04 |
+|       Iteration |              63 |
+|   AverageReturn |        1.27e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.27e+03 |
+|       MinReturn |        1.27e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.3e+04 |
+-------------------------------------
+onpol_iters:  63
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1143.933656696545]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1467.040718198629]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  74000
+-------------------------------------
+|            Time |         1.7e+04 |
+|       Iteration |              64 |
+|   AverageReturn |        1.14e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.14e+03 |
+|       MinReturn |        1.14e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.4e+04 |
+-------------------------------------
+onpol_iters:  64
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1224.7008466519644]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1523.4011175632722]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  75000
+-------------------------------------
+|            Time |        1.73e+04 |
+|       Iteration |              65 |
+|   AverageReturn |        1.22e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.22e+03 |
+|       MinReturn |        1.22e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.5e+04 |
+-------------------------------------
+onpol_iters:  65
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1233.985967528341]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1147.5183577252567]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  76000
+-------------------------------------
+|            Time |        1.76e+04 |
+|       Iteration |              66 |
+|   AverageReturn |        1.23e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.23e+03 |
+|       MinReturn |        1.23e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.6e+04 |
+-------------------------------------
+onpol_iters:  66
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1093.971052691164]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1714.417451122931]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  77000
+-------------------------------------
+|            Time |        1.78e+04 |
+|       Iteration |              67 |
+|   AverageReturn |        1.09e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.09e+03 |
+|       MinReturn |        1.09e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.7e+04 |
+-------------------------------------
+onpol_iters:  67
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1196.0851003345194]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1657.1363653266367]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  78000
+-------------------------------------
+|            Time |        1.81e+04 |
+|       Iteration |              68 |
+|   AverageReturn |         1.2e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |         1.2e+03 |
+|       MinReturn |         1.2e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.8e+04 |
+-------------------------------------
+onpol_iters:  68
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1241.4560134512465]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1698.838440988666]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  79000
+-------------------------------------
+|            Time |        1.84e+04 |
+|       Iteration |              69 |
+|   AverageReturn |        1.24e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.24e+03 |
+|       MinReturn |        1.24e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         6.9e+04 |
+-------------------------------------
+onpol_iters:  69
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1170.3452485373573]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1734.416793063951]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  80000
+-------------------------------------
+|            Time |        1.86e+04 |
+|       Iteration |              70 |
+|   AverageReturn |        1.17e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.17e+03 |
+|       MinReturn |        1.17e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           7e+04 |
+-------------------------------------
+onpol_iters:  70
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1063.377022036782]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1783.485019955032]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  81000
+-------------------------------------
+|            Time |        1.89e+04 |
+|       Iteration |              71 |
+|   AverageReturn |        1.06e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.06e+03 |
+|       MinReturn |        1.06e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.1e+04 |
+-------------------------------------
+onpol_iters:  71
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1100.3103857683723]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1905.936822149331]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  82000
+-------------------------------------
+|            Time |        1.92e+04 |
+|       Iteration |              72 |
+|   AverageReturn |         1.1e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |         1.1e+03 |
+|       MinReturn |         1.1e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.2e+04 |
+-------------------------------------
+onpol_iters:  72
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1291.0921421082296]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1049.156197940739]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  83000
+-------------------------------------
+|            Time |        1.94e+04 |
+|       Iteration |              73 |
+|   AverageReturn |        1.29e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.29e+03 |
+|       MinReturn |        1.29e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.3e+04 |
+-------------------------------------
+onpol_iters:  73
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1181.7332404049685]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1913.966032879591]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  84000
+-------------------------------------
+|            Time |        1.97e+04 |
+|       Iteration |              74 |
+|   AverageReturn |        1.18e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.18e+03 |
+|       MinReturn |        1.18e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.4e+04 |
+-------------------------------------
+onpol_iters:  74
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1145.1224370283333]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1946.9539564850693]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  85000
+-------------------------------------
+|            Time |           2e+04 |
+|       Iteration |              75 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.5e+04 |
+-------------------------------------
+onpol_iters:  75
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [959.7712512972178]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1995.5939989298222]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  86000
+-------------------------------------
+|            Time |        2.02e+04 |
+|       Iteration |              76 |
+|   AverageReturn |             960 |
+|       StdReturn |               0 |
+|       MaxReturn |             960 |
+|       MinReturn |             960 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.6e+04 |
+-------------------------------------
+onpol_iters:  76
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1263.9795882391456]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [2000.980583318154]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  87000
+-------------------------------------
+|            Time |        2.05e+04 |
+|       Iteration |              77 |
+|   AverageReturn |        1.26e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.26e+03 |
+|       MinReturn |        1.26e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.7e+04 |
+-------------------------------------
+onpol_iters:  77
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1142.70858696335]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1680.7734335458372]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  88000
+-------------------------------------
+|            Time |        2.08e+04 |
+|       Iteration |              78 |
+|   AverageReturn |        1.14e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.14e+03 |
+|       MinReturn |        1.14e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.8e+04 |
+-------------------------------------
+onpol_iters:  78
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1184.6072160549681]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1960.6635650226171]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  89000
+-------------------------------------
+|            Time |         2.1e+04 |
+|       Iteration |              79 |
+|   AverageReturn |        1.18e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.18e+03 |
+|       MinReturn |        1.18e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         7.9e+04 |
+-------------------------------------
+onpol_iters:  79
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1177.1383984654515]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1127.5770806443506]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  90000
+-------------------------------------
+|            Time |        2.13e+04 |
+|       Iteration |              80 |
+|   AverageReturn |        1.18e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.18e+03 |
+|       MinReturn |        1.18e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           8e+04 |
+-------------------------------------
+onpol_iters:  80
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1290.9211826703536]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [933.630660269277]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  91000
+-------------------------------------
+|            Time |        2.16e+04 |
+|       Iteration |              81 |
+|   AverageReturn |        1.29e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.29e+03 |
+|       MinReturn |        1.29e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.1e+04 |
+-------------------------------------
+onpol_iters:  81
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1152.4757065804092]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [2065.2278474927703]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  92000
+-------------------------------------
+|            Time |        2.18e+04 |
+|       Iteration |              82 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.2e+04 |
+-------------------------------------
+onpol_iters:  82
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1129.3370664748672]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1898.6842212710762]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  93000
+-------------------------------------
+|            Time |        2.21e+04 |
+|       Iteration |              83 |
+|   AverageReturn |        1.13e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.13e+03 |
+|       MinReturn |        1.13e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.3e+04 |
+-------------------------------------
+onpol_iters:  83
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1185.8736321805734]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1805.5067782727679]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  94000
+-------------------------------------
+|            Time |        2.23e+04 |
+|       Iteration |              84 |
+|   AverageReturn |        1.19e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.19e+03 |
+|       MinReturn |        1.19e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.4e+04 |
+-------------------------------------
+onpol_iters:  84
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1196.2985924722097]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [2045.349465008177]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  95000
+-------------------------------------
+|            Time |        2.26e+04 |
+|       Iteration |              85 |
+|   AverageReturn |         1.2e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |         1.2e+03 |
+|       MinReturn |         1.2e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.5e+04 |
+-------------------------------------
+onpol_iters:  85
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1214.9521197798856]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [2049.365448704788]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  96000
+-------------------------------------
+|            Time |        2.29e+04 |
+|       Iteration |              86 |
+|   AverageReturn |        1.21e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.21e+03 |
+|       MinReturn |        1.21e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.6e+04 |
+-------------------------------------
+onpol_iters:  86
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1187.1298807122332]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1711.3089483606468]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  97000
+-------------------------------------
+|            Time |        2.31e+04 |
+|       Iteration |              87 |
+|   AverageReturn |        1.19e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.19e+03 |
+|       MinReturn |        1.19e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.7e+04 |
+-------------------------------------
+onpol_iters:  87
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1141.315671706369]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1524.020943512208]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  98000
+-------------------------------------
+|            Time |        2.34e+04 |
+|       Iteration |              88 |
+|   AverageReturn |        1.14e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.14e+03 |
+|       MinReturn |        1.14e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.8e+04 |
+-------------------------------------
+onpol_iters:  88
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1108.5564839105436]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1753.4632795911511]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  99000
+-------------------------------------
+|            Time |        2.37e+04 |
+|       Iteration |              89 |
+|   AverageReturn |        1.11e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.11e+03 |
+|       MinReturn |        1.11e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         8.9e+04 |
+-------------------------------------
+onpol_iters:  89
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1339.0166710012127]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1688.1306263219576]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  100000
+-------------------------------------
+|            Time |        2.39e+04 |
+|       Iteration |              90 |
+|   AverageReturn |        1.34e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.34e+03 |
+|       MinReturn |        1.34e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           9e+04 |
+-------------------------------------
+onpol_iters:  90
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1064.7036274949796]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1590.2599890117845]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  101000
+-------------------------------------
+|            Time |        2.42e+04 |
+|       Iteration |              91 |
+|   AverageReturn |        1.06e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.06e+03 |
+|       MinReturn |        1.06e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.1e+04 |
+-------------------------------------
+onpol_iters:  91
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1286.8526173612347]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1623.4460468072173]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  102000
+-------------------------------------
+|            Time |        2.45e+04 |
+|       Iteration |              92 |
+|   AverageReturn |        1.29e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.29e+03 |
+|       MinReturn |        1.29e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.2e+04 |
+-------------------------------------
+onpol_iters:  92
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1223.9144224175554]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1263.6843314556725]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  103000
+-------------------------------------
+|            Time |        2.47e+04 |
+|       Iteration |              93 |
+|   AverageReturn |        1.22e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.22e+03 |
+|       MinReturn |        1.22e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.3e+04 |
+-------------------------------------
+onpol_iters:  93
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1258.232669073656]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1998.8113016695515]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  104000
+-------------------------------------
+|            Time |         2.5e+04 |
+|       Iteration |              94 |
+|   AverageReturn |        1.26e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.26e+03 |
+|       MinReturn |        1.26e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.4e+04 |
+-------------------------------------
+onpol_iters:  94
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1310.19476156429]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1592.1994562117864]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  105000
+-------------------------------------
+|            Time |        2.53e+04 |
+|       Iteration |              95 |
+|   AverageReturn |        1.31e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.31e+03 |
+|       MinReturn |        1.31e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.5e+04 |
+-------------------------------------
+onpol_iters:  95
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1176.0750700875003]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1547.393563045155]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  106000
+-------------------------------------
+|            Time |        2.55e+04 |
+|       Iteration |              96 |
+|   AverageReturn |        1.18e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.18e+03 |
+|       MinReturn |        1.18e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.6e+04 |
+-------------------------------------
+onpol_iters:  96
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1149.4319389429993]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1566.88816147118]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  107000
+-------------------------------------
+|            Time |        2.58e+04 |
+|       Iteration |              97 |
+|   AverageReturn |        1.15e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.15e+03 |
+|       MinReturn |        1.15e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.7e+04 |
+-------------------------------------
+onpol_iters:  97
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1166.7322956238775]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1897.3511459155059]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  108000
+-------------------------------------
+|            Time |        2.61e+04 |
+|       Iteration |              98 |
+|   AverageReturn |        1.17e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.17e+03 |
+|       MinReturn |        1.17e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.8e+04 |
+-------------------------------------
+onpol_iters:  98
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1218.3889479861894]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1721.8379673194527]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  109000
+-------------------------------------
+|            Time |        2.63e+04 |
+|       Iteration |              99 |
+|   AverageReturn |        1.22e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.22e+03 |
+|       MinReturn |        1.22e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |         9.9e+04 |
+-------------------------------------
+onpol_iters:  99
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1234.5191811650054]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [1348.9088355565623]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  110000
+-------------------------------------
+|            Time |        2.66e+04 |
+|       Iteration |             100 |
+|   AverageReturn |        1.23e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.23e+03 |
+|       MinReturn |        1.23e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |           1e+05 |
+-------------------------------------
+onpol_iters:  100
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True
+ep_rets  [1187.9894690599006]
+ep_lens  [1000]
+BEHAVIORAL_CLONING:  False
+PPO ep_rets  [2079.8099096443934]
+ppo_data_buffer size 1000
+bc_data_buffer size 0
+model data buffer size:  111000
+-------------------------------------
+|            Time |        2.69e+04 |
+|       Iteration |             101 |
+|   AverageReturn |        1.19e+03 |
+|       StdReturn |               0 |
+|       MaxReturn |        1.19e+03 |
+|       MinReturn |        1.19e+03 |
+|       EpLenMean |           1e+03 |
+|        EpLenStd |               0 |
+|  TimestepsSoFar |        1.01e+05 |
+-------------------------------------
+onpol_iters:  101
+Model fitting for  260 times ... 
+bc learning_rate:  0.001
+ppo learning_rate:  0.0003
+Using normal mpc
+Direct_mpc:  True

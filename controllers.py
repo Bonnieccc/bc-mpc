@@ -302,6 +302,7 @@ class MPCcontroller_BC_PPO(Controller):
                  env, 
                  dyn_model,
                  bc_ppo_network, 
+                 self_exp=True,
                  horizon=5, 
                  cost_fn=None, 
                  num_simulated_paths=10,
@@ -312,6 +313,7 @@ class MPCcontroller_BC_PPO(Controller):
         self.horizon = horizon
         self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
+        self.self_exp=self_exp
 
     # @profile
     def sample_random_actions(self):
@@ -345,8 +347,12 @@ class MPCcontroller_BC_PPO(Controller):
         states_paths_all.append(states)
 
         for i in range(self.horizon):
-            actions, _ = self.bc_ppo_network.act(states, stochastic=False)
-            actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
+            if self.self_exp:
+                actions, _ = self.bc_ppo_network.act(states, stochastic=True)
+            else:
+                actions, _ = self.bc_ppo_network.act(states, stochastic=False)
+                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
+                
             states = self.dyn_model.predict(states, actions)
 
             # states = self.dyn_model.predict(states, action_paths[i, :, :])

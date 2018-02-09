@@ -39,72 +39,7 @@ from collections import deque
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
-def traj_segment_generator_old(pi, env, horizon, stochastic=True):
-    t = 0
-    ac = env.action_space.sample() # not used, just so we have the datatype
-    ob = env.reset()
-    new = False # marks if we're on first timestep of an episode
 
-    cur_ep_ret = 0 # return in current episode
-    cur_ep_len = 0 # len of current episode
-    ep_rets = [] # returns of completed episodes in this segment
-    ep_lens = [] # lengths of ...
-
-    # Initialize history arrays
-    obs = np.array([ob for _ in range(horizon)])
-    rews = np.zeros(horizon, 'float32')
-    vpreds = np.zeros(horizon, 'float32')
-    news = np.zeros(horizon, 'int32')
-    acs = np.array([ac for _ in range(horizon)])
-    prevacs = acs.copy()
-
-    while True:
-        prevac = ac
-
-        ac, vpred = pi.act(ob)
-
-        # Slight weirdness here because we need value function at time T
-        # before returning segment [0, T-1] so we get the correct
-        # terminal value
-        if t > 0 and t % horizon == 0:
-            # print("ep_lens ", ep_lens)
-            sec = copy.deepcopy({"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
-            "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-            "ep_rets" : ep_rets, "ep_lens" : ep_lens})
-            yield sec
-            # Be careful!!! if you change the downstream algorithm to aggregate
-            # several of these batches, then be sure to do a deepcopy
-            ep_rets = []
-            ep_lens = []
-
-        i = t % horizon
-        obs[i] = ob
-        vpreds[i] = vpred
-        news[i] = new
-        acs[i] = ac
-        prevacs[i] = prevac
-        ob, rew, done, _ = env.step(ac[0])
-        rews[i] = rew
-
-        cur_ep_ret += rew
-        cur_ep_len += 1
-        # print('cur_ep_len', cur_ep_len)
-        # print('done', done)
-        # print('new', new)
-        done = False
-        if done or (t%1000 == 0 and t>0):
-            ob = env.reset()
-            new = True 
-
-        if new:
-            ep_rets.append(cur_ep_ret)
-            ep_lens.append(cur_ep_len)
-            cur_ep_ret = 0
-            cur_ep_len = 0
-            new = False # marks if we're on first timestep of an episode
-
-
-        t += 1
 
 def traj_segment_generator(pi, env, horizon, stochastic=True):
     t = 0
@@ -130,7 +65,7 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
     while True:
         prevac = ac
 
-        ac, vpred = pi.act(ob)
+        ac, vpred = pi.act(ob, stochastic)
 
 
         obs[t] = ob
@@ -155,8 +90,7 @@ def traj_segment_generator(pi, env, horizon, stochastic=True):
 
 
         if t > 0 and t % (horizon-1) == 0:
-            print("ep_rets ", ep_rets)
-            print("ep_lens ", ep_lens)
+            print("PPO ep_rets ", ep_rets)
 
             break
 
@@ -282,7 +216,7 @@ def train_PG(exp_name='',
     # Prepare for rollouts
     # ----------------------------------------
 
-    seg_gen = traj_segment_generator_old(policy_nn, env, timesteps_per_actorbatch)
+    # seg_gen = traj_segment_generator_old(policy_nn, env, timesteps_per_actorbatch)
 
     episodes_so_far = 0
     timesteps_so_far = 0

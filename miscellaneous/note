@@ -1,4 +1,5 @@
-for ppo:
+PPO
+
 working lr:3e-4
 working data size > 1000 updated data
 working batch 64 128
