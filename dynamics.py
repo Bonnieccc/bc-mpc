@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+
 class NNDynamicsModel():
     def __init__(self, 
                  env, 
@@ -35,8 +36,7 @@ class NNDynamicsModel():
                                    output_activation=output_activation)
 
         # data normalization
-        # self.mean_obs, self.std_obs, self.mean_action, self.std_action, self.mean_reward, self.std_reward, self.mean_nxt_state, self.std_nxt_state, self.mean_deltas, self.std_deltas = normalization
-        self.mean_obs, self.std_obs, self.mean_action, self.std_action, self.mean_nxt_state, self.std_nxt_state, self.mean_deltas, self.std_deltas = normalization
+        self.mean_obs, self.std_obs, self.mean_action, self.std_action, self.mean_reward, self.std_reward, self.mean_nxt_state, self.std_nxt_state, self.mean_deltas, self.std_deltas = normalization
 
         # optimization
         self.sess = sess
@@ -83,7 +83,6 @@ class NNDynamicsModel():
         print("Model fitting for ", self.iterations, "times ... ")
         for i in range(self.iterations):
             # print("dynamic fit iter: ", i)
-            # sample_state, sample_action, sample_reward, sample_nxt_state, sample_state_delta = data.sample(self.batch_size)
             sample_state, sample_action, sample_nxt_state, sample_state_delta = data.sample(self.batch_size)
 
             normalized_sample_state =  self.normalize(sample_state, self.std_obs, self.mean_obs)
