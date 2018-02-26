@@ -43,6 +43,66 @@ MPC_AUG_GAP = 1
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
+def traj_segment_generator_ppo(pi, env, horizon, stochastic=True):
+    t = 0
+    ac = env.action_space.sample() # not used, just so we have the datatype
+    ob = env.reset()
+    new = True # marks if we're on first timestep of an episode
+
+    cur_ep_ret = 0 # return in current episode
+    cur_ep_len = 0 # len of current episode
+    ep_rets = [] # returns of completed episodes in this segment
+    ep_lens = [] # lengths of ...
+
+    # Initialize history arrays
+    obs = np.array([ob for _ in range(horizon)])
+    nxt_obs = np.array([ob for _ in range(horizon)])
+
+    rews = np.zeros(horizon, 'float32')
+    vpreds = np.zeros(horizon, 'float32')
+    news = np.zeros(horizon, 'int32')
+    acs = np.array([ac for _ in range(horizon)])
+    prevacs = acs.copy()
+
+    while True:
+        prevac = ac
+
+        ac, vpred = pi.act(ob, stochastic)
+
+
+        obs[t] = ob
+        vpreds[t] = vpred
+        news[t] = new
+        acs[t] = ac
+        prevacs[t] = prevac
+
+        ob, rew, done, _ = env.step(ac)
+        new = False
+
+        nxt_obs[t] = ob
+        rews[t] = rew
+
+        cur_ep_ret += rew
+        cur_ep_len += 1
+
+
+        if t > 0 and t % (horizon-1) == 0:
+            ep_rets.append(cur_ep_ret)
+            ep_lens.append(cur_ep_len)
+
+            print("PPO ep_rets ", ep_rets)
+
+            break
+
+        t += 1
+
+    sec = {"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
+    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
+    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+
+    
+    return  sec
+
 def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, ppo_mpc, horizon):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
@@ -316,7 +376,7 @@ def train(env,
         print("ppo learning_rate: ",  ppo_lr)
 
 
-        ################## fit mpc model
+        ################## mpc seg data
         if MPC:
             dyn_model.fit(model_data_buffer)
 
@@ -342,9 +402,6 @@ def train(env,
 
                 if MPC:
                     model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
-
-
-        ################## mpc augmented seg data
 
         if itr % MPC_AUG_GAP == 0 and MPC:
             print("MPC AUG PPO")
@@ -376,6 +433,8 @@ def train(env,
         ep_lengths = seg["ep_lens"]
         returns =  seg["ep_rets"]
 
+
+
         # saver.save(sess, CHECKPOINT_DIR)
         if BEHAVIORAL_CLONING:
             if np.mean(returns) > 100:
@@ -393,8 +452,6 @@ def train(env,
             else:
                 ppo_mpc = False
 
-
-        ################## optimization
 
         print("ppo_data_buffer size", ppo_data_buffer.size)
         print("bc_data_buffer size", bc_data_buffer.size)
@@ -424,9 +481,6 @@ def train(env,
             if op_ep % (100) == 0 and BEHAVIORAL_CLONING and bc:
                 print('epcho: ', op_ep)
                 behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
-
-
-        ################## print and save data
 
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
 

@@ -22,7 +22,6 @@ class RandomController(Controller):
         """ Your code should randomly sample an action uniformly from the action space """
         return self.env.action_space.sample()
 
-
 class MPCcontroller(Controller):
     """ Controller built using the MPC method outlined in https://arxiv.org/abs/1708.02596 """
     def __init__(self, 
@@ -294,7 +293,6 @@ class MPCcontroller_learned_reward(Controller):
 
         # print("MPC imagine min cost: ", opt_imgreward)
         return opt_action
-
 
 class MPCcontroller_BC_PPO(Controller):
     """ Controller built using the MPC method outlined in https://arxiv.org/abs/1708.02596 """
