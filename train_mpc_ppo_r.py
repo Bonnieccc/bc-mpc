@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 import gym
-from dynamics import NNDynamicsModel
-from controllers import MPCcontroller, RandomController, MPCcontroller_BC_PPO
+from dynamics import NNDynamicsRewardModel, NNDynamicsRewardModel
+from controllers import MPCcontroller, RandomController, MPCcontrollerPolicyNet, MPCcontrollerPolicyNetReward
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -12,11 +12,11 @@ import pickle
 
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
-from data_buffer import DataBuffer, DataBuffer_general 
+from data_buffer import DataBuffer, DataBufferGeneral 
 from behavioral_cloning import BCnetwork
 # from pympler.tracker import SummaryTracker
 from utils import denormalize, normalize, pathlength, sample, compute_normalization, path_cost
-from ppo_bc_policy import MlpPolicy_bc
+from ppo_bc_policy import MlpPolicy
 
 
 
@@ -43,7 +43,7 @@ MPC_AUG_GAP = 1
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
 
-def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, ppo_mpc, horizon):
+def traj_segment_generator(pi, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, horizon):
     t = 0
     ac = env.action_space.sample() # not used, just so we have the datatype
     ob = env.reset()
@@ -80,7 +80,7 @@ def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_bu
 
         if mpc:
             if ppo_mpc:
-                mpc_ac = mpc_controller_bc_ppo.get_action(ob)
+                mpc_ac = mpc_ppo_controller.get_action(ob)
             else:
                 mpc_ac = mpc_controller.get_action(ob)
         else:
@@ -201,19 +201,17 @@ def train(env,
     print("BEHAVIORAL_CLONING: ", BEHAVIORAL_CLONING)
     print("PPO: ", PPO)
     print("MPC-AUG: ", MPC)
-
     print(" ")
 
 
-    random_controller = RandomController(env)
-    model_data_buffer = DataBuffer()
-
-    ppo_data_buffer = DataBuffer_general(10000, 4)
-    bc_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 2)
+    # initialize buffers
+    model_data_buffer = DataBufferGeneral(1000000, 5)
+    ppo_data_buffer = DataBufferGeneral(10000, 4)
+    bc_data_buffer = DataBufferGeneral(BC_BUFFER_SIZE, 2)
 
     # random sample path
-
     print("collecting random data .....  ")
+    random_controller = RandomController(env)
     paths = sample(env, 
                random_controller, 
                num_paths=num_paths_random, 
@@ -224,7 +222,11 @@ def train(env,
     # add into buffer
     for path in paths:
         for n in range(len(path['observations'])):
-            model_data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
+            model_data_buffer.add([path['observations'][n],
+                                 path['actions'][n], 
+                                 path['rewards'][n], 
+                                 path['next_observations'][n], 
+                                 path['next_observations'][n] - path['observations'][n]])
 
 
     print("model data buffer size: ", model_data_buffer.size)
@@ -237,16 +239,12 @@ def train(env,
     # 
     sess = tf.Session()
 
-    dyn_model = NNDynamicsModel(env=env, 
-                                n_layers=n_layers, 
-                                size=size, 
-                                activation=activation, 
-                                output_activation=output_activation, 
-                                normalization=normalization,
-                                batch_size=batch_size,
-                                iterations=dynamics_iters,
-                                learning_rate=learning_rate,
-                                sess=sess)
+    dyn_model = NNDynamicsRewardModel(env=env, 
+                                    normalization=normalization,
+                                    batch_size=batch_size,
+                                    iterations=dynamics_iters,
+                                    learning_rate=learning_rate,
+                                    sess=sess)
 
     mpc_controller = MPCcontroller(env=env, 
                                    dyn_model=dyn_model, 
@@ -254,14 +252,15 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
+    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
-    mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
+    mpc_ppo_controller = MPCcontrollerPolicyNetReward(env=env, 
                                    dyn_model=dyn_model, 
-                                   bc_ppo_network=policy_nn,
+                                   policy_net=policy_nn,
+                                   self_exp=True,
                                    horizon=mpc_horizon, 
-                                   cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
+
 
 
     #========================================================
@@ -327,7 +326,7 @@ def train(env,
 
             # ppo_seg = traj_segment_generator_ppo(policy_nn, env, env_horizon)
             mpc = False
-            ppo_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
+            ppo_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
 
             add_vtarg_and_adv(ppo_seg, gamma, lam)
 
@@ -341,7 +340,7 @@ def train(env,
                 ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
 
                 if MPC:
-                    model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
+                    model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
 
         ################## mpc augmented seg data
@@ -351,7 +350,7 @@ def train(env,
 
             ppo_mpc = True
             mpc = True
-            mpc_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
+            mpc_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
             add_vtarg_and_adv(mpc_seg, gamma, lam)
 
             ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_seg["ob"], mpc_seg["ac"], mpc_seg["mpcac"], mpc_seg["rew"], mpc_seg["nxt_ob"], mpc_seg["adv"], mpc_seg["tdlamret"]
@@ -366,7 +365,7 @@ def train(env,
                     bc_data_buffer.add([ob[n], mpcac[n]])
 
                 if MPC:
-                    model_data_buffer.add(ob[n], mpcac[n], nxt_ob[n])
+                    model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
             mpc_returns = mpc_seg["ep_rets"]
 

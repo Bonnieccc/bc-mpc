@@ -101,14 +101,15 @@ def sample(env,
     for i in range(num_paths):
         # print("random data iter ", i)
         st = env.reset_model()
-        path = {'observations': [], 'actions': [], 'next_observations':[]}
+        path = {'observations': [], 'actions': [], 'rewards': [], 'next_observations':[]}
 
         for t in range(horizon):
            at = controller.get_action(st)
-           st_next, _, _, _ = env.step(at)
+           st_next, r_t, _, _ = env.step(at)
 
            path['observations'].append(st)
            path['actions'].append(at)
+           path['rewards'].append(r_t)
            path['next_observations'].append(st_next)
            st = st_next
 
@@ -123,19 +124,23 @@ def path_cost(cost_fn, path):
 def compute_normalization(data):
     """
     Write a function to take in a dataset and compute the means, and stds.
-    Return 6 elements: mean of s_t, std of s_t, mean of (s_t+1 - s_t), std of (s_t+1 - s_t), mean of actions, std of actions
+    Return 10 elements: mean, std
     """
 
     """ YOUR CODE HERE """
     # Nomalization statistics
+    # sample_state, sample_action, sample_reward, sample_nxt_state, sample_state_delta = data.sample(data.size)
     sample_state, sample_action, sample_nxt_state, sample_state_delta = data.sample(data.size)
+
     mean_obs = np.mean(sample_state, axis=0)
     mean_action = np.mean(sample_action, axis=0)
+    # mean_reward = np.mean(sample_reward, axis=0)
     mean_nxt_state = np.mean(sample_nxt_state, axis=0)
     mean_deltas = np.mean(sample_state_delta, axis=0)
 
     std_obs = np.std(sample_state, axis=0)
     std_action = np.std(sample_action, axis=0)
+    # std_reward = np.std(sample_reward, axis=0)
     std_nxt_state = np.std(sample_nxt_state, axis=0)
     std_deltas = np.std(sample_state_delta, axis=0)
 

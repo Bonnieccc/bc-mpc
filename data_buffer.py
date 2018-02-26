@@ -26,7 +26,7 @@ class DataBuffer(object):
         return sample_state, sample_action, sample_state_next_t, sample_state_delta
 
 
-class DataBuffer_general(object):
+class DataBufferGeneral(object):
     def __init__(self, buffer_size, item_num):
         self.buffer = deque()
         self.size = 0
@@ -60,38 +60,3 @@ class DataBuffer_general(object):
         self.buffer.clear()
         self.size = 0
 
-
-class DataBuffer_SA(object):
-    """docstring for ClassName"""
-    def __init__(self, buffer_size):
-        self.buffer = deque()
-        self.size = 0
-        self.buffer_size = buffer_size
-
-    def add(self, state_t, action_t):
-        sa = (state_t, action_t)
-        if self.size <= self.buffer_size:
-            self.buffer.append(sa)
-            self.size += 1
-        else:
-            self.buffer.popleft()
-            self.buffer.append(sa)
-
-    def sample(self, batch_size):
-        # Sample N
-        batch = []
-
-        if self.size < batch_size:
-            batch = random.sample(self.buffer, self.size)
-        else:
-            batch = random.sample(self.buffer, batch_size)
-
-        s_batch = np.array([_[0] for _ in batch])
-        a_batch = np.array([_[1] for _ in batch])
-
-        return s_batch, a_batch
-
-
-    def clear(self):
-        self.buffer.clear()
-        self.size = 0

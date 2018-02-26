@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import gym
 from dynamics import NNDynamicsModel
-from controllers import MPCcontroller, RandomController, MPCcontroller_BC_PPO
+from controllers import MPCcontroller, RandomController, MPCcontrollerPolicyNet
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
 import logz
@@ -12,11 +12,11 @@ import pickle
 
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
-from data_buffer import DataBuffer, DataBuffer_general 
+from data_buffer import DataBuffer, DataBufferGeneral 
 from behavioral_cloning import BCnetwork
 # from pympler.tracker import SummaryTracker
 from utils import denormalize, normalize, pathlength, sample, compute_normalization, path_cost
-from ppo_bc_policy import MlpPolicy_bc
+from ppo_bc_policy import MlpPolicy
 
 
 
@@ -42,66 +42,6 @@ MPC_AUG_GAP = 1
 
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
-
-def traj_segment_generator_ppo(pi, env, horizon, stochastic=True):
-    t = 0
-    ac = env.action_space.sample() # not used, just so we have the datatype
-    ob = env.reset()
-    new = True # marks if we're on first timestep of an episode
-
-    cur_ep_ret = 0 # return in current episode
-    cur_ep_len = 0 # len of current episode
-    ep_rets = [] # returns of completed episodes in this segment
-    ep_lens = [] # lengths of ...
-
-    # Initialize history arrays
-    obs = np.array([ob for _ in range(horizon)])
-    nxt_obs = np.array([ob for _ in range(horizon)])
-
-    rews = np.zeros(horizon, 'float32')
-    vpreds = np.zeros(horizon, 'float32')
-    news = np.zeros(horizon, 'int32')
-    acs = np.array([ac for _ in range(horizon)])
-    prevacs = acs.copy()
-
-    while True:
-        prevac = ac
-
-        ac, vpred = pi.act(ob, stochastic)
-
-
-        obs[t] = ob
-        vpreds[t] = vpred
-        news[t] = new
-        acs[t] = ac
-        prevacs[t] = prevac
-
-        ob, rew, done, _ = env.step(ac)
-        new = False
-
-        nxt_obs[t] = ob
-        rews[t] = rew
-
-        cur_ep_ret += rew
-        cur_ep_len += 1
-
-
-        if t > 0 and t % (horizon-1) == 0:
-            ep_rets.append(cur_ep_ret)
-            ep_lens.append(cur_ep_len)
-
-            print("PPO ep_rets ", ep_rets)
-
-            break
-
-        t += 1
-
-    sec = {"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
-    "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
-
-    
-    return  sec
 
 def traj_segment_generator(pi, mpc_controller, mpc_controller_bc_ppo, bc_data_buffer, env, mpc, ppo_mpc, horizon):
     t = 0
@@ -266,10 +206,11 @@ def train(env,
 
 
     random_controller = RandomController(env)
-    model_data_buffer = DataBuffer()
 
-    ppo_data_buffer = DataBuffer_general(10000, 4)
-    bc_data_buffer = DataBuffer_general(BC_BUFFER_SIZE, 2)
+    model_data_buffer = DataBuffer()
+    # model_data_buffer = DataBufferGeneral(1000000, 5)
+    ppo_data_buffer = DataBufferGeneral(10000, 4)
+    bc_data_buffer = DataBufferGeneral(BC_BUFFER_SIZE, 2)
 
     # random sample path
 
@@ -285,7 +226,11 @@ def train(env,
     for path in paths:
         for n in range(len(path['observations'])):
             model_data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
-
+            # model_data_buffer.add([path['observations'][n],
+            #                      path['actions'][n], 
+            #                      path['rewards'][n], 
+            #                      path['next_observations'][n], 
+            #                      np.asarray(path['next_observations'][n]) - np.asarray(path['observations'][n])])
 
     print("model data buffer size: ", model_data_buffer.size)
 
@@ -314,11 +259,12 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    policy_nn = MlpPolicy_bc(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
+    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
-    mpc_controller_bc_ppo = MPCcontroller_BC_PPO(env=env, 
+    mpc_controller_bc_ppo = MPCcontrollerPolicyNet(env=env, 
                                    dyn_model=dyn_model, 
-                                   bc_ppo_network=policy_nn,
+                                   policy_net=policy_nn,
+                                   self_exp=True,
                                    horizon=mpc_horizon, 
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
@@ -376,7 +322,7 @@ def train(env,
         print("ppo learning_rate: ",  ppo_lr)
 
 
-        ################## mpc seg data
+        ################## fit mpc model
         if MPC:
             dyn_model.fit(model_data_buffer)
 
@@ -401,7 +347,11 @@ def train(env,
                 ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
 
                 if MPC:
+                    # model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
                     model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
+
+
+        ################## mpc augmented seg data
 
         if itr % MPC_AUG_GAP == 0 and MPC:
             print("MPC AUG PPO")
@@ -423,7 +373,8 @@ def train(env,
                     bc_data_buffer.add([ob[n], mpcac[n]])
 
                 if MPC:
-                    model_data_buffer.add(ob[n], mpcac[n], nxt_ob[n])
+                    # model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
+                    model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
 
             mpc_returns = mpc_seg["ep_rets"]
 
@@ -432,8 +383,6 @@ def train(env,
         # check if seg is good
         ep_lengths = seg["ep_lens"]
         returns =  seg["ep_rets"]
-
-
 
         # saver.save(sess, CHECKPOINT_DIR)
         if BEHAVIORAL_CLONING:
@@ -452,6 +401,8 @@ def train(env,
             else:
                 ppo_mpc = False
 
+
+        ################## optimization
 
         print("ppo_data_buffer size", ppo_data_buffer.size)
         print("bc_data_buffer size", bc_data_buffer.size)
@@ -481,6 +432,9 @@ def train(env,
             if op_ep % (100) == 0 and BEHAVIORAL_CLONING and bc:
                 print('epcho: ', op_ep)
                 behavioral_cloning_eval(sess, env, policy_nn, env_horizon)
+
+
+        ################## print and save data
 
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
 

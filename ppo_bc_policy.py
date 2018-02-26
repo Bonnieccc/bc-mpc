@@ -12,7 +12,7 @@ import gym
 
 
 
-class MlpPolicy_bc(object):
+class MlpPolicy(object):
     recurrent = False
 
     def __init__(self, sess, env, hid_size, num_hid_layers, clip_param, entcoeff):
