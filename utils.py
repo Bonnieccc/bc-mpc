@@ -132,6 +132,9 @@ def compute_normalization(data):
     # sample_state, sample_action, sample_reward, sample_nxt_state, sample_state_delta = data.sample(data.size)
     sample_state, sample_action, sample_nxt_state, sample_state_delta = data.sample(data.size)
 
+
+    print("sample_state", sample_state)
+
     mean_obs = np.mean(sample_state, axis=0)
     mean_action = np.mean(sample_action, axis=0)
     # mean_reward = np.mean(sample_reward, axis=0)
