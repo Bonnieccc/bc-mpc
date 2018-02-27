@@ -207,8 +207,8 @@ def train(env,
 
     random_controller = RandomController(env)
 
-    model_data_buffer = DataBuffer()
-    # model_data_buffer = DataBufferGeneral(1000000, 5)
+    # model_data_buffer = DataBuffer()
+    model_data_buffer = DataBufferGeneral(1000000, 5)
     ppo_data_buffer = DataBufferGeneral(10000, 4)
     bc_data_buffer = DataBufferGeneral(BC_BUFFER_SIZE, 2)
 
@@ -225,12 +225,11 @@ def train(env,
     # add into buffer
     for path in paths:
         for n in range(len(path['observations'])):
-            # model_data_buffer.add([path['observations'][n],
-            #                      path['actions'][n], 
-            #                      path['rewards'][n], 
-            #                      path['next_observations'][n], 
-            #                      np.asarray(path['next_observations'][n]) - np.asarray(path['observations'][n])])
-            model_data_buffer.add(path['observations'][n], path['actions'][n], path['next_observations'][n])
+            model_data_buffer.add([path['observations'][n],
+                                 path['actions'][n], 
+                                 path['rewards'][n], 
+                                 path['next_observations'][n], 
+                                 np.asarray(path['next_observations'][n]) - np.asarray(path['observations'][n])])
 
     print("model data buffer size: ", model_data_buffer.size)
 
@@ -347,8 +346,7 @@ def train(env,
                 ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
 
                 if MPC:
-                    # model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
-                    model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
+                    model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
 
         ################## mpc augmented seg data
@@ -373,8 +371,7 @@ def train(env,
                     bc_data_buffer.add([ob[n], mpcac[n]])
 
                 if MPC:
-                    # model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
-                    model_data_buffer.add(ob[n], ac[n], nxt_ob[n])
+                    model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
             mpc_returns = mpc_seg["ep_rets"]
 
