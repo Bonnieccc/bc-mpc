@@ -31,15 +31,51 @@ from baselines import logger
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_boolean('LEARN_REWARD', False, """Learn reward function or use cost function as mpc evaluation""")
-
-
-
-tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, """ How many iters to use mpc augumentation """)
-# tf.app.flags.DEFINE_float('CL_ALPHA', 0.5, """ALPHA for CONSISTENCY LOSS""")
-tf.app.flags.DEFINE_string('CHECKPOINT_DIR', 'checkpoints_bcmpc_noisy/', """Checkpoints save directory""")
+tf.app.flags.DEFINE_boolean('LEARN_REWARD', False, "Learn reward function or use cost function as mpc evaluation")
+tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumentation ")
+tf.app.flags.DEFINE_string('CHECKPOINT_DIR', 'checkpoints_bcmpc_noisy/', "Checkpoints save directory")
 tf.app.flags.DEFINE_boolean('LOAD_MODEL', False, """Load model or not""")
 
+# Experiment meta-params
+tf.app.flags.DEFINE_string('env_name', 'HalfCheetah-v1', 'Environment name')
+tf.app.flags.DEFINE_string('exp_name', 'mpc_bc_ppo', 'Experiment name')
+tf.app.flags.DEFINE_integer('seed', 3, 'random seed')
+tf.app.flags.DEFINE_boolean('render', False, 'Render or not')
+
+# Model Training args
+tf.app.flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate')
+tf.app.flags.DEFINE_integer('onpol_iters', 100, 'onpol_iters')
+tf.app.flags.DEFINE_integer('dyn_iters', 260, 'dyn_iters')
+tf.app.flags.DEFINE_integer('batch_size', 512, 'batch_size')
+
+# BC and PPO Training args
+tf.app.flags.DEFINE_float('bc_lr', 1e-3, '')
+tf.app.flags.DEFINE_float('ppo_lr',  1e-4, '')
+tf.app.flags.DEFINE_float('clip_param', 0.2, '')
+tf.app.flags.DEFINE_float('gamma', 0.99, '')
+tf.app.flags.DEFINE_float('entcoeff',  0.0, '')
+tf.app.flags.DEFINE_float('lam', 0.95, '')
+
+tf.app.flags.DEFINE_integer('optim_epochs', 500, '')
+tf.app.flags.DEFINE_integer('optim_batchsize', 128, '')
+tf.app.flags.DEFINE_integer('timesteps_per_actorbatch', '-b2', 1000, '')
+
+tf.app.flags.DEFINE_string('schedule', 'constant', '')
+
+# Data collection
+tf.app.flags.DEFINE_integer('random_paths', 10, '')
+tf.app.flags.DEFINE_integer('onpol_paths', 1, '')
+tf.app.flags.DEFINE_integer('simulated_paths', 400, '')
+tf.app.flags.DEFINE_integer('ep_len', 1000, '')
+# Neural network architecture args
+tf.app.flags.DEFINE_integer('n_layers', 2, '')
+tf.app.flags.DEFINE_integer('size', 256, '')
+# MPC Controller
+tf.app.flags.DEFINE_integer('mpc_horizon', 10, '')
+
+tf.app.flags.DEFINE_boolean('mpc', False, 'Render or not')
+tf.app.flags.DEFINE_boolean('bc', False, 'Render or not')
+tf.app.flags.DEFINE_boolean('ppo', True, 'Render or not')
 
 ############################
 
@@ -170,7 +206,7 @@ def train(env,
                                        horizon=mpc_horizon, 
                                        cost_fn=cost_fn, 
                                        num_simulated_paths=num_simulated_paths)
-        
+
     mpc_controller = MPCcontroller(env=env, 
                                    dyn_model=dyn_model, 
                                    horizon=mpc_horizon, 
@@ -371,99 +407,57 @@ def train(env,
 
 def main():
 
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--env_name', type=str, default='HalfCheetah-v1')
-    # Experiment meta-params
-    parser.add_argument('--exp_name', type=str, default='mpc_bc_ppo')
-    parser.add_argument('--seed', type=int, default=3)
-    parser.add_argument('--render', action='store_true')
-    # Model Training args
-    parser.add_argument('--learning_rate', '-lr', type=float, default=1e-3)
-    parser.add_argument('--onpol_iters', '-n', type=int, default=100)
-    parser.add_argument('--dyn_iters', '-nd', type=int, default=260)
-    parser.add_argument('--batch_size', '-b', type=int, default=512)
-
-    # BC and PPO Training args
-    parser.add_argument('--bc_lr', '-bc_lr', type=float, default=1e-3)
-    parser.add_argument('--ppo_lr', '-ppo_lr', type=float, default=1e-4)
-
-    parser.add_argument('--clip_param', '-cp', type=float, default=0.2)
-    parser.add_argument('--gamma', '-g', type=float, default=0.99)
-    parser.add_argument('--entcoeff', '-ent', type=float, default=0.0)
-    parser.add_argument('--lam', type=float, default=0.95)
-    parser.add_argument('--optim_epochs', type=int, default=500)
-    parser.add_argument('--optim_batchsize', type=int, default=128)
-    parser.add_argument('--schedule', type=str, default='constant')
-    parser.add_argument('--timesteps_per_actorbatch', '-b2', type=int, default=1000)
-    # Data collection
-    parser.add_argument('--random_paths', '-r', type=int, default=10)
-    parser.add_argument('--onpol_paths', '-d', type=int, default=1)
-    parser.add_argument('--simulated_paths', '-sp', type=int, default=400)
-    parser.add_argument('--ep_len', '-ep', type=int, default=1000)
-    # Neural network architecture args
-    parser.add_argument('--n_layers', '-l', type=int, default=2)
-    parser.add_argument('--size', '-s', type=int, default=256)
-    # MPC Controller
-    parser.add_argument('--mpc_horizon', '-m', type=int, default=10)
-
-    parser.add_argument('--mpc', action='store_true')
-    parser.add_argument('--bc', action='store_true')
-    parser.add_argument('--ppo', action='store_true')
-
-    args = parser.parse_args()
-
-    assert (args.mpc or args.ppo) == True
+    assert (FLAGS.mpc or FLAGS.ppo) == True
 
     # Set seed
-    np.random.seed(args.seed)
-    tf.set_random_seed(args.seed)
+    np.random.seed(FLAGS.seed)
+    tf.set_random_seed(FLAGS.seed)
 
     # Make data directory if it does not already exist
     if not(os.path.exists('data')):
         os.makedirs('data')
-    # logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
-    logdir = args.exp_name + '_' + args.env_name
+    # logdir = FLAGS.exp_name + '_' + FLAGS.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
+    logdir = FLAGS.exp_name + '_' + FLAGS.env_name
 
     logdir = os.path.join('data', logdir)
     if not(os.path.exists(logdir)):
         os.makedirs(logdir)
 
     # Make env
-    if args.env_name is "HalfCheetah-v1":
+    if FLAGS.env_name is "HalfCheetah-v1":
         env = HalfCheetahEnvNew()
         cost_fn = cheetah_cost_fn
         
     train(env=env, 
                  cost_fn=cost_fn,
                  logdir=logdir,
-                 render=args.render,
-                 learning_rate=args.learning_rate,
-                 onpol_iters=args.onpol_iters,
-                 dynamics_iters=args.dyn_iters,
-                 batch_size=args.batch_size,
-                 num_paths_random=args.random_paths, 
-                 num_paths_onpol=args.onpol_paths, 
-                 num_simulated_paths=args.simulated_paths,
-                 env_horizon=args.ep_len, 
-                 mpc_horizon=args.mpc_horizon,
-                 n_layers = args.n_layers,
-                 size=args.size,
+                 render=FLAGS.render,
+                 learning_rate=FLAGS.learning_rate,
+                 onpol_iters=FLAGS.onpol_iters,
+                 dynamics_iters=FLAGS.dyn_iters,
+                 batch_size=FLAGS.batch_size,
+                 num_paths_random=FLAGS.random_paths, 
+                 num_paths_onpol=FLAGS.onpol_paths, 
+                 num_simulated_paths=FLAGS.simulated_paths,
+                 env_horizon=FLAGS.ep_len, 
+                 mpc_horizon=FLAGS.mpc_horizon,
+                 n_layers = FLAGS.n_layers,
+                 size=FLAGS.size,
                  activation=tf.nn.relu,
                  output_activation=None,
-                 clip_param = args.clip_param,
-                 entcoeff = args.entcoeff,
-                 gamma = args.gamma,
-                 lam = args.lam,
-                 optim_epochs = args.optim_epochs,
-                 optim_batchsize = args.optim_batchsize,
-                 schedule = args.schedule,
-                 bc_lr = args.bc_lr,
-                 ppo_lr = args.ppo_lr,
-                 timesteps_per_actorbatch = args.timesteps_per_actorbatch,
-                 MPC = args.mpc,
-                 BEHAVIORAL_CLONING = args.bc,
-                 PPO = args.ppo,
+                 clip_param = FLAGS.clip_param,
+                 entcoeff = FLAGS.entcoeff,
+                 gamma = FLAGS.gamma,
+                 lam = FLAGS.lam,
+                 optim_epochs = FLAGS.optim_epochs,
+                 optim_batchsize = FLAGS.optim_batchsize,
+                 schedule = FLAGS.schedule,
+                 bc_lr = FLAGS.bc_lr,
+                 ppo_lr = FLAGS.ppo_lr,
+                 timesteps_per_actorbatch = FLAGS.timesteps_per_actorbatch,
+                 MPC = FLAGS.mpc,
+                 BEHAVIORAL_CLONING = FLAGS.bc,
+                 PPO = FLAGS.ppo,
                  )
 
 if __name__ == "__main__":
