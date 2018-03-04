@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+import copy
+
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 
 # Utilities
@@ -117,8 +119,8 @@ def sample(env,
 
     return paths
 
-# Utility to compute cost a path for a given cost function
 def path_cost(cost_fn, path):
+    # Utility to compute cost a path for a given cost function
     return trajectory_cost_fn(cost_fn, path['observations'], path['actions'], path['next_observations'])
 
 def compute_normalization(data):
@@ -148,4 +150,122 @@ def compute_normalization(data):
     std_deltas = np.std(sample_state_delta, axis=0)
 
     return [mean_obs, std_obs, mean_action, std_action, mean_reward, std_reward, mean_nxt_state, std_nxt_state, mean_deltas, std_deltas]
+
+def flatten_lists(listoflists):
+    return [el for list_ in listoflists for el in list_]
+
+def traj_segment_generator(pi, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, horizon):
+    t = 0
+    ac = env.action_space.sample() # not used, just so we have the datatype
+    ob = env.reset()
+    new = True # marks if we're on first timestep of an episode
+
+    cur_ep_ret = 0 # return in current episode
+    cur_ep_len = 0 # len of current episode
+    ep_rets = [] # returns of completed episodes in this segment
+    ep_lens = [] # lengths of ...
+
+    # Initialize history arrays
+    obs = np.array([ob for _ in range(horizon)])
+    nxt_obs = np.array([ob for _ in range(horizon)])
+
+    rews = np.zeros(horizon, 'float32')
+    vpreds = np.zeros(horizon, 'float32')
+    news = np.zeros(horizon, 'int32')
+    acs = np.array([ac for _ in range(horizon)])
+    prevacs = acs.copy()
+    mpcacs = acs.copy()
+
+    print("using mpc: ", mpc)
+
+    if mpc:
+        if ppo_mpc:
+            print("Using ppo mpc")
+        else:
+            print("Using normal mpc")
+
+    while True:
+        prevac = ac
+
+        ac, vpred = pi.act(ob, stochastic=True)
+
+        if mpc:
+            if ppo_mpc:
+                mpc_ac = mpc_ppo_controller.get_action(ob)
+            else:
+                mpc_ac = mpc_controller.get_action(ob)
+        else:
+            mpc_ac = copy.deepcopy(ac)
+
+        obs[t] = ob
+        vpreds[t] = vpred
+        news[t] = new
+        acs[t] = ac
+        prevacs[t] = prevac
+        mpcacs[t] = mpc_ac
+
+        ob, rew, done, _ = env.step(mpc_ac)
+        new = False
+
+        nxt_obs[t] = ob
+        rews[t] = rew
+
+        cur_ep_ret += rew
+        cur_ep_len += 1
+
+        t += 1
+
+
+        # if t > 0 and t % (horizon-1) == 0:
+        if t >= horizon:
+
+            ep_rets.append(cur_ep_ret)
+            ep_lens.append(cur_ep_len)
+
+            print("ep_rets ", ep_rets)
+            print("ep_lens ", ep_lens)
+
+            break
+
+
+    sec = {"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
+    "ac" : acs, "prevac" : prevacs, "mpcac" : mpcacs, "nextvpred": vpred * (1 - new),
+    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+
+    
+    return  sec
+
+def add_vtarg_and_adv(seg, gamma=0.99, lam=0.95):
+    """
+    Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
+    """
+    new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
+    vpred = np.append(seg["vpred"], seg["nextvpred"])
+    T = len(seg["rew"])
+    seg["adv"] = gaelam = np.empty(T, 'float32')
+    rew = seg["rew"]
+    lastgaelam = 0
+    for t in reversed(range(T)):
+        nonterminal = 1-new[t+1]
+        delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
+        gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
+    seg["tdlamret"] = seg["adv"] + seg["vpred"]
+
+def policy_net_eval(sess, env, policy_net, env_horizon):
+    print('---------- Policy Net Performance ---------')
+    # st = env.reset_model()
+    st = env.reset()
+
+    returns = 0
+
+    for j in range(env_horizon):
+        at, vpred = policy_net.act(st, stochastic=False)
+        # print(at)
+        nxt_st, r, _, _ = env.step(at)
+        st = nxt_st
+        returns += r
+
+    print("return: ", returns)
+
+    return returns
 

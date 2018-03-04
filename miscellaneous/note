@@ -1,12 +1,12 @@
 PPO
 
-working lr:3e-4
+working lr:1e-4, 3e-4
 working data size > 1000 updated data
 working batch 64 128
 optimization steps: ~320
 
 act(stochastic) is very important for ppo along, without stochasticy it diverge!
-
+lr 1e-4 learns slower but also more stable
 
 BC:
 

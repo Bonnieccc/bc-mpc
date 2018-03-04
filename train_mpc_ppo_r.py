@@ -15,15 +15,15 @@ from cheetah_env import HalfCheetahEnvNew
 from data_buffer import DataBuffer, DataBufferGeneral 
 from behavioral_cloning import BCnetwork
 # from pympler.tracker import SummaryTracker
-from utils import denormalize, normalize, pathlength, sample, compute_normalization, path_cost
+from utils import denormalize, normalize, pathlength, sample, compute_normalization, path_cost, flatten_lists, traj_segment_generator, add_vtarg_and_adv, policy_net_eval
 from ppo_bc_policy import MlpPolicy
 
 
 
 from mpi4py import MPI
 from collections import deque
-from baselines.common import Dataset, explained_variance, fmt_row, zipsame
-from baselines import logger
+# from baselines.common import Dataset, explained_variance, fmt_row, zipsame
+# from baselines import logger
 
 
 
@@ -39,124 +39,6 @@ CHECKPOINT_DIR = 'checkpoints_bcmpc_noisy/'
 MPC_AUG_GAP = 1
 
 ############################
-
-def flatten_lists(listoflists):
-    return [el for list_ in listoflists for el in list_]
-
-def traj_segment_generator(pi, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, horizon):
-    t = 0
-    ac = env.action_space.sample() # not used, just so we have the datatype
-    ob = env.reset()
-    new = True # marks if we're on first timestep of an episode
-
-    cur_ep_ret = 0 # return in current episode
-    cur_ep_len = 0 # len of current episode
-    ep_rets = [] # returns of completed episodes in this segment
-    ep_lens = [] # lengths of ...
-
-    # Initialize history arrays
-    obs = np.array([ob for _ in range(horizon)])
-    nxt_obs = np.array([ob for _ in range(horizon)])
-
-    rews = np.zeros(horizon, 'float32')
-    vpreds = np.zeros(horizon, 'float32')
-    news = np.zeros(horizon, 'int32')
-    acs = np.array([ac for _ in range(horizon)])
-    prevacs = acs.copy()
-    mpcacs = acs.copy()
-
-    print("using mpc: ", mpc)
-
-    if mpc:
-        if ppo_mpc:
-            print("Using ppo mpc")
-        else:
-            print("Using normal mpc")
-
-    while True:
-        prevac = ac
-
-        ac, vpred = pi.act(ob, stochastic=True)
-
-        if mpc:
-            if ppo_mpc:
-                mpc_ac = mpc_ppo_controller.get_action(ob)
-            else:
-                mpc_ac = mpc_controller.get_action(ob)
-        else:
-            mpc_ac = copy.deepcopy(ac)
-
-        obs[t] = ob
-        vpreds[t] = vpred
-        news[t] = new
-        acs[t] = ac
-        prevacs[t] = prevac
-        mpcacs[t] = mpc_ac
-
-        ob, rew, done, _ = env.step(mpc_ac)
-        new = False
-
-        nxt_obs[t] = ob
-        rews[t] = rew
-
-        cur_ep_ret += rew
-        cur_ep_len += 1
-
-        t += 1
-
-
-        # if t > 0 and t % (horizon-1) == 0:
-        if t >= horizon:
-
-            ep_rets.append(cur_ep_ret)
-            ep_lens.append(cur_ep_len)
-
-            print("ep_rets ", ep_rets)
-            print("ep_lens ", ep_lens)
-
-            break
-
-
-    sec = {"ob" : obs, "rew" : rews, "nxt_ob": nxt_obs, "vpred" : vpreds, "new" : news,
-    "ac" : acs, "prevac" : prevacs, "mpcac" : mpcacs, "nextvpred": vpred * (1 - new),
-    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
-
-    
-    return  sec
-
-def add_vtarg_and_adv(seg, gamma=0.99, lam=0.95):
-    """
-    Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
-    """
-    new = np.append(seg["new"], 0) # last element is only used for last vtarg, but we already zeroed it if last new = 1
-    vpred = np.append(seg["vpred"], seg["nextvpred"])
-    T = len(seg["rew"])
-    seg["adv"] = gaelam = np.empty(T, 'float32')
-    rew = seg["rew"]
-    lastgaelam = 0
-    for t in reversed(range(T)):
-        nonterminal = 1-new[t+1]
-        delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
-        gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-    seg["tdlamret"] = seg["adv"] + seg["vpred"]
-
-def behavioral_cloning_eval(sess, env, bc_ppo_network, env_horizon):
-    print('---------- BC PPO Performance ---------')
-    # st = env.reset_model()
-    st = env.reset()
-
-    returns = 0
-
-    for j in range(env_horizon):
-        at, vpred = bc_ppo_network.act(st, stochastic=False)
-        # print(at)
-        nxt_st, r, _, _ = env.step(at)
-        st = nxt_st
-        returns += r
-
-    print("return: ", returns)
-
-    return returns
 
 def train(env, 
          cost_fn,
@@ -237,7 +119,12 @@ def train(env,
     # 
     # Build dynamics model and MPC controllers and Behavioral cloning network.
     # 
-    sess = tf.Session()
+    # tf_config = tf.ConfigProto(inter_op_parallelism_threads=1, intra_op_parallelism_threads=1) 
+    tf_config = tf.ConfigProto() 
+
+    tf_config.gpu_options.allow_growth = True
+
+    sess = tf.Session(config=tf_config)
 
     dyn_model = NNDynamicsRewardModel(env=env, 
                                     normalization=normalization,
@@ -252,12 +139,12 @@ def train(env,
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
 
-    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
+    policy_nn = MlpPolicy(sess=sess, env=env, hid_size=256, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
     mpc_ppo_controller = MPCcontrollerPolicyNetReward(env=env, 
                                    dyn_model=dyn_model, 
                                    policy_net=policy_nn,
-                                   self_exp=True,
+                                   self_exp=False,
                                    horizon=mpc_horizon, 
                                    num_simulated_paths=num_simulated_paths)
 
@@ -365,7 +252,7 @@ def train(env,
                     bc_data_buffer.add([ob[n], mpcac[n]])
 
                 if MPC:
-                    model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
+                    model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
             mpc_returns = mpc_seg["ep_rets"]
 
@@ -446,7 +333,8 @@ def train(env,
         #     print("saved", filename)
 
 
-        logz.log_tabular("Time", time.time() - start)
+        logz.log_tabular("TimeSoFar", time.time() - start)
+        logz.log_tabular("TimeEp", time.time() - tstart)
         logz.log_tabular("Iteration", iters_so_far)
         logz.log_tabular("AverageReturn", np.mean(returns))
         logz.log_tabular("MpcReturn", np.mean(mpc_returns))
@@ -459,6 +347,7 @@ def train(env,
         logz.log_tabular("TimestepsSoFar", timesteps_so_far)
         logz.dump_tabular()
         logz.pickle_tf_vars()
+        tstart = time.time()
 
 
 def main():
@@ -478,7 +367,7 @@ def main():
 
     # BC and PPO Training args
     parser.add_argument('--bc_lr', '-bc_lr', type=float, default=1e-3)
-    parser.add_argument('--ppo_lr', '-ppo_lr', type=float, default=3e-4)
+    parser.add_argument('--ppo_lr', '-ppo_lr', type=float, default=1e-4)
 
     parser.add_argument('--clip_param', '-cp', type=float, default=0.2)
     parser.add_argument('--gamma', '-g', type=float, default=0.99)
@@ -515,6 +404,8 @@ def main():
     if not(os.path.exists('data')):
         os.makedirs('data')
     logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime("%d-%m-%Y_%H-%M-%S")
+    logdir = args.exp_name + '_' + args.env_name
+
     logdir = os.path.join('data', logdir)
     if not(os.path.exists(logdir)):
         os.makedirs(logdir)

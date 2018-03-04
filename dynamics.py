@@ -113,7 +113,7 @@ class NNDynamicsModel():
 
         return unnormalized_nxt_state
 
-class NNDynamicsRewardModel():
+class NNDynamicsRewardModel(NNDynamicsModel):
     def __init__(self, 
                  env, 
                  normalization,
@@ -169,14 +169,6 @@ class NNDynamicsRewardModel():
             reward_predict = tf.layers.dense(reward_predict, 1, activation=None)
 
         return state_delta_predict, reward_predict
-
-    def normalize(self, unnormalized_data, std, mean):
-        normalized_data =  (unnormalized_data - mean)/ (std+ 1e-10)
-        return normalized_data
-
-    def denomalize(self, normalized_data, std, mean):
-        unnormalized_data =  (normalized_data * std) + mean
-        return unnormalized_data
 
     def fit(self, data):
         """
