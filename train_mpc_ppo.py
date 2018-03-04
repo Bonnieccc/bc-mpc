@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import gym
-from dynamics import NNDynamicsRewardModel, NNDynamicsRewardModel
+from dynamics import NNDynamicsRewardModel, NNDynamicsModel
 from controllers import MPCcontroller, RandomController, MPCcontrollerPolicyNet, MPCcontrollerPolicyNetReward
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 import time
@@ -58,7 +58,7 @@ tf.app.flags.DEFINE_float('lam', 0.95, '')
 
 tf.app.flags.DEFINE_integer('optim_epochs', 500, '')
 tf.app.flags.DEFINE_integer('optim_batchsize', 128, '')
-tf.app.flags.DEFINE_integer('timesteps_per_actorbatch', '-b2', 1000, '')
+tf.app.flags.DEFINE_integer('timesteps_per_actorbatch', 1000, '')
 
 tf.app.flags.DEFINE_string('schedule', 'constant', '')
 
@@ -172,7 +172,7 @@ def train(env,
     policy_nn = MlpPolicy(sess=sess, env=env, hid_size=128, num_hid_layers=2, clip_param=clip_param , entcoeff=entcoeff)
 
     if FLAGS.LEARN_REWARD:
-        print(" Learn reward function")
+        print("Learn reward function")
         dyn_model = NNDynamicsRewardModel(env=env, 
                                         normalization=normalization,
                                         batch_size=batch_size,
@@ -187,7 +187,7 @@ def train(env,
                                        horizon=mpc_horizon, 
                                        num_simulated_paths=num_simulated_paths)
     else:
-        print(" Use predefined cost function")
+        print("Use predefined cost function")
         dyn_model = NNDynamicsModel(env=env, 
                                     n_layers=n_layers, 
                                     size=size, 
@@ -424,7 +424,7 @@ def main():
         os.makedirs(logdir)
 
     # Make env
-    if FLAGS.env_name is "HalfCheetah-v1":
+    if FLAGS.env_name == "HalfCheetah-v1":
         env = HalfCheetahEnvNew()
         cost_fn = cheetah_cost_fn
         
