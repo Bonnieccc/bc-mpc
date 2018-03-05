@@ -78,8 +78,6 @@ tf.app.flags.DEFINE_boolean('bc', False, 'Render or not')
 tf.app.flags.DEFINE_boolean('ppo', True, 'Render or not')
 
 ############################
-
-
 def train(env, 
          cost_fn,
          logdir=None,
@@ -115,7 +113,7 @@ def train(env,
     start = time.time()
 
     logz.configure_output_dir(logdir)
-
+    merged_summary, summary_writer, ppo_return_op, mpc_return_op = build_summary_ops(logdir)
 
     print("-------- env info --------")
     print("observation_space: ", env.observation_space.shape)
@@ -404,6 +402,32 @@ def train(env,
         logz.dump_tabular()
         logz.pickle_tf_vars()
         tstart = time.time()
+
+        ################### TF Summaries
+        summary_str = sess.run(merged_summary, feed_dict={
+                  ppo_return_op:np.mean(returns),
+                  mpc_return_op:np.mean(mpc_returns),
+                  })
+        summary_writer.add_summary(summary_str, itr)
+        summary_writer.flush()
+
+def build_summary_ops(logdir):
+
+    summary_writer = tf.summary.FileWriter(logdir)
+
+    ppo_return_op =  tf.placeholder(tf.float32)
+    mpc_return_op =  tf.placeholder(tf.float32)
+
+    tf.summary.scalar('mean_ppo_return', ppo_return_op)
+    tf.summary.scalar('mean_mpc_return', mpc_return_op)
+
+    merged_summary = tf.summary.merge_all()
+
+    return merged_summary, summary_writer, ppo_return_op, mpc_return_op
+
+
+
+
 
 def main():
 
