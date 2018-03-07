@@ -185,7 +185,8 @@ class MPCcontrollerPolicyNet(Controller):
             else:
                 actions, _ = self.policy_net.act(states, stochastic=False)
                 actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
-                
+
+
             states = self.dyn_model.predict(states, actions)
 
             # states = self.dyn_model.predict(states, action_paths[i, :, :])

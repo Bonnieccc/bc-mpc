@@ -97,6 +97,7 @@ class NNDynamicsModel():
                                      self.states_delta:normalized_sample_state_delta})
             
             # print("loss ", i, " : ", loss)
+        return loss
 
     def predict(self, unnormalized_state, unnormalized_action):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions and return the (unnormalized) next states as predicted by using the model """
@@ -194,6 +195,7 @@ class NNDynamicsRewardModel(NNDynamicsModel):
                                      self.states_delta:normalized_sample_state_delta})
             
             # print("loss ", i, " : ", loss)
+        return loss
 
     def predict(self, unnormalized_state, unnormalized_action):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions and return the (unnormalized) next states as predicted by using the model """

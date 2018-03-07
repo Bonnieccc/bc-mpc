@@ -17,8 +17,6 @@ from behavioral_cloning import BCnetwork
 from utils import denormalize, normalize, pathlength, sample, compute_normalization, path_cost, flatten_lists, traj_segment_generator, add_vtarg_and_adv, policy_net_eval
 from ppo_bc_policy import MlpPolicy
 
-
-
 from mpi4py import MPI
 from collections import deque
 from baselines.common import Dataset, explained_variance, fmt_row, zipsame
@@ -35,6 +33,7 @@ tf.app.flags.DEFINE_boolean('LEARN_REWARD', False, "Learn reward function or use
 tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumentation ")
 tf.app.flags.DEFINE_string('CHECKPOINT_DIR', 'checkpoints_bcmpc_noisy/', "Checkpoints save directory")
 tf.app.flags.DEFINE_boolean('LOAD_MODEL', False, """Load model or not""")
+tf.app.flags.DEFINE_boolean('SELFEXP', False, """Use external exploration or ppo's own exp""")
 
 # Experiment meta-params
 tf.app.flags.DEFINE_string('env_name', 'HalfCheetah-v1', 'Environment name')
@@ -45,8 +44,9 @@ tf.app.flags.DEFINE_boolean('render', False, 'Render or not')
 # Model Training args
 tf.app.flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate')
 tf.app.flags.DEFINE_integer('onpol_iters', 100, 'onpol_iters')
-tf.app.flags.DEFINE_integer('dyn_iters', 260, 'dyn_iters')
+tf.app.flags.DEFINE_integer('dyn_iters', 200, 'dyn_iters')
 tf.app.flags.DEFINE_integer('batch_size', 512, 'batch_size')
+tf.app.flags.DEFINE_integer('MODELBUFFER_SIZE', 1000000, 'MODELBUFFER_SIZE')
 
 # BC and PPO Training args
 tf.app.flags.DEFINE_float('bc_lr', 1e-3, '')
@@ -71,7 +71,7 @@ tf.app.flags.DEFINE_integer('ep_len', 1000, '')
 tf.app.flags.DEFINE_integer('n_layers', 2, '')
 tf.app.flags.DEFINE_integer('size', 256, '')
 # MPC Controller
-tf.app.flags.DEFINE_integer('mpc_horizon', 10, '')
+tf.app.flags.DEFINE_integer('mpc_horizon', 15, '')
 
 tf.app.flags.DEFINE_boolean('mpc', False, 'Render or not')
 tf.app.flags.DEFINE_boolean('bc', False, 'Render or not')
@@ -113,7 +113,7 @@ def train(env,
     start = time.time()
 
     logz.configure_output_dir(logdir)
-    merged_summary, summary_writer, ppo_return_op, mpc_return_op = build_summary_ops(logdir)
+    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op = build_summary_ops(logdir)
 
     print("-------- env info --------")
     print("observation_space: ", env.observation_space.shape)
@@ -128,7 +128,7 @@ def train(env,
     random_controller = RandomController(env)
 
     # Creat buffers
-    model_data_buffer = DataBufferGeneral(1000000, 5)
+    model_data_buffer = DataBufferGeneral(FLAGS.MODELBUFFER_SIZE, 5)
     ppo_data_buffer = DataBufferGeneral(10000, 4)
     bc_data_buffer = DataBufferGeneral(2000, 2)
 
@@ -181,7 +181,7 @@ def train(env,
         mpc_ppo_controller = MPCcontrollerPolicyNetReward(env=env, 
                                        dyn_model=dyn_model, 
                                        policy_net=policy_nn,
-                                       self_exp=False,
+                                       self_exp=FLAGS.SELFEXP,
                                        horizon=mpc_horizon, 
                                        num_simulated_paths=num_simulated_paths)
     else:
@@ -200,7 +200,7 @@ def train(env,
         mpc_ppo_controller = MPCcontrollerPolicyNet(env=env, 
                                        dyn_model=dyn_model, 
                                        policy_net=policy_nn,
-                                       self_exp=False,
+                                       self_exp=FLAGS.SELFEXP,
                                        horizon=mpc_horizon, 
                                        cost_fn=cost_fn, 
                                        num_simulated_paths=num_simulated_paths)
@@ -210,6 +210,8 @@ def train(env,
                                    horizon=mpc_horizon, 
                                    cost_fn=cost_fn, 
                                    num_simulated_paths=num_simulated_paths)
+    # if not PPO:
+    #     mpc_ppo_controller = mpc_controller
 
     #========================================================
     # 
@@ -265,30 +267,27 @@ def train(env,
 
         ################## fit mpc model
         if MPC:
-            dyn_model.fit(model_data_buffer)
+            model_loss = dyn_model.fit(model_data_buffer)
 
 
         ################## ppo seg data
-        if PPO:
-            ppo_data_buffer.clear()
+        ppo_data_buffer.clear()
 
-            # ppo_seg = traj_segment_generator_ppo(policy_nn, env, env_horizon)
-            mpc = False
-            ppo_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
+        # ppo_seg = traj_segment_generator_ppo(policy_nn, env, env_horizon)
+        mpc = False
+        ppo_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
 
-            add_vtarg_and_adv(ppo_seg, gamma, lam)
+        add_vtarg_and_adv(ppo_seg, gamma, lam)
 
-            ob, ac, rew, nxt_ob, atarg, tdlamret = \
-            ppo_seg["ob"], ppo_seg["ac"], ppo_seg["rew"], ppo_seg["nxt_ob"], ppo_seg["adv"], ppo_seg["tdlamret"]
+        ob, ac, rew, nxt_ob, atarg, tdlamret = \
+        ppo_seg["ob"], ppo_seg["ac"], ppo_seg["rew"], ppo_seg["nxt_ob"], ppo_seg["adv"], ppo_seg["tdlamret"]
 
-            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+        atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
-            # add into buffer
-            for n in range(len(ob)):
-                ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
-
-                if MPC:
-                    model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
+        # add into buffer
+        for n in range(len(ob)):
+            ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
+            model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
 
         ################## mpc augmented seg data
@@ -316,6 +315,7 @@ def train(env,
                     model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
             mpc_returns = mpc_seg["ep_rets"]
+
 
         seg = ppo_seg
 
@@ -407,6 +407,7 @@ def train(env,
         summary_str = sess.run(merged_summary, feed_dict={
                   ppo_return_op:np.mean(returns),
                   mpc_return_op:np.mean(mpc_returns),
+                  model_loss_op:model_loss,
                   })
         summary_writer.add_summary(summary_str, itr)
         summary_writer.flush()
@@ -417,13 +418,15 @@ def build_summary_ops(logdir):
 
     ppo_return_op =  tf.placeholder(tf.float32)
     mpc_return_op =  tf.placeholder(tf.float32)
+    model_loss_op = tf.placeholder(tf.float32)
 
     tf.summary.scalar('mean_ppo_return', ppo_return_op)
     tf.summary.scalar('mean_mpc_return', mpc_return_op)
+    tf.summary.scalar('model_loss', model_loss_op)
 
     merged_summary = tf.summary.merge_all()
 
-    return merged_summary, summary_writer, ppo_return_op, mpc_return_op
+    return merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op
 
 
 
