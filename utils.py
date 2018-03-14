@@ -4,6 +4,8 @@ import copy
 
 from cost_functions import cheetah_cost_fn, trajectory_cost_fn
 
+FLAGS = tf.app.flags.FLAGS
+
 # Utilities
 
 def denormalize(n_data, std, mean):
@@ -102,7 +104,11 @@ def sample(env,
     paths = []
     for i in range(num_paths):
         # print("random data iter ", i)
-        st = env.reset_model()
+        if FLAGS.env_name == "HalfCheetah-v1":
+            st = env.reset_model()
+        else:
+            st = env.reset()
+
         path = {'observations': [], 'actions': [], 'rewards': [], 'next_observations':[]}
 
         for t in range(horizon):

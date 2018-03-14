@@ -49,6 +49,7 @@ tf.app.flags.DEFINE_integer('onpol_iters', 100, 'onpol_iters')
 tf.app.flags.DEFINE_integer('dyn_iters', 200, 'dyn_iters')
 tf.app.flags.DEFINE_integer('batch_size', 512, 'batch_size')
 tf.app.flags.DEFINE_integer('MODELBUFFER_SIZE', 1000000, 'MODELBUFFER_SIZE')
+tf.app.flags.DEFINE_boolean('LAYER_NORM', False, """Use layer normalization""")
 
 # BC and PPO Training args
 tf.app.flags.DEFINE_float('bc_lr', 1e-3, '')
@@ -115,7 +116,7 @@ def train(env,
     start = time.time()
 
     logz.configure_output_dir(logdir)
-    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, ppo_std_op, mpc_std_op = build_summary_ops(logdir)
+    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, ppo_std_op, mpc_std_op = build_summary_ops(logdir, env)
 
     print("-------- env info --------")
     print("Environment: ", FLAGS.env_name)
@@ -424,14 +425,14 @@ def train(env,
         summary_writer.add_summary(summary_str, itr)
         summary_writer.flush()
 
-def build_summary_ops(logdir):
+def build_summary_ops(logdir, env):
 
     summary_writer = tf.summary.FileWriter(logdir)
 
     ppo_return_op =  tf.placeholder(tf.float32)
     mpc_return_op =  tf.placeholder(tf.float32)
     model_loss_op = tf.placeholder(tf.float32)
-    ppo_std_op =  tf.placeholder(tf.float32, shape=(6),)
+    ppo_std_op =  tf.placeholder(tf.float32, shape=(env.action_space.shape))
     mpc_std_op = tf.placeholder(tf.float32)
 
     tf.summary.scalar('mean_ppo_return', ppo_return_op)
