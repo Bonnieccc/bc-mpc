@@ -155,6 +155,7 @@ class MPCcontrollerPolicyNet(Controller):
                  env, 
                  dyn_model,
                  policy_net, 
+                 explore=1.,
                  self_exp=True,
                  horizon=5, 
                  cost_fn=None, 
@@ -166,7 +167,8 @@ class MPCcontrollerPolicyNet(Controller):
         self.horizon = horizon
         self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
-        self.self_exp=self_exp
+        self.self_exp = self_exp
+        self.explore = explore
 
     def get_action(self, state):
         """ YOUR CODE HERE """
@@ -184,7 +186,7 @@ class MPCcontrollerPolicyNet(Controller):
                 actions, _ = self.policy_net.act(states, stochastic=True)
             else:
                 actions, _ = self.policy_net.act(states, stochastic=False)
-                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
+                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
 
 
             states = self.dyn_model.predict(states, actions)
@@ -222,17 +224,20 @@ class MPCcontrollerPolicyNetReward(Controller):
                  env, 
                  dyn_model,
                  policy_net, 
+                 explore=1.,
                  self_exp=True,
                  horizon=5, 
+                 cost_fn=None, 
                  num_simulated_paths=10,
                  ):
         self.env = env
         self.dyn_model = dyn_model
         self.policy_net = policy_net
         self.horizon = horizon
+        self.cost_fn = cost_fn
         self.num_simulated_paths = num_simulated_paths
-        self.self_exp=self_exp
-
+        self.self_exp = self_exp
+        self.explore = explore
     def get_action(self, state):
         """ YOUR CODE HERE """
         """ Note: be careful to batch your simulations through the model for speed """
@@ -251,7 +256,7 @@ class MPCcontrollerPolicyNetReward(Controller):
                 actions, _ = self.policy_net.act(states, stochastic=True)
             else:
                 actions, _ = self.policy_net.act(states, stochastic=False)
-                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * 2 -1
+                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
                 
             states, reward = self.dyn_model.predict(states, actions)
 

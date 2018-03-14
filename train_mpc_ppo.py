@@ -34,6 +34,8 @@ tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumen
 tf.app.flags.DEFINE_string('CHECKPOINT_DIR', 'checkpoints_bcmpc_noisy/', "Checkpoints save directory")
 tf.app.flags.DEFINE_boolean('LOAD_MODEL', False, """Load model or not""")
 tf.app.flags.DEFINE_boolean('SELFEXP', False, """Use external exploration or ppo's own exp""")
+tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore magnitude')
+
 
 # Experiment meta-params
 tf.app.flags.DEFINE_string('env_name', 'HalfCheetah-v1', 'Environment name')
@@ -50,7 +52,7 @@ tf.app.flags.DEFINE_integer('MODELBUFFER_SIZE', 1000000, 'MODELBUFFER_SIZE')
 
 # BC and PPO Training args
 tf.app.flags.DEFINE_float('bc_lr', 1e-3, '')
-tf.app.flags.DEFINE_float('ppo_lr',  1e-4, '')
+tf.app.flags.DEFINE_float('ppo_lr',  3e-4, '')
 tf.app.flags.DEFINE_float('clip_param', 0.2, '')
 tf.app.flags.DEFINE_float('gamma', 0.99, '')
 tf.app.flags.DEFINE_float('entcoeff',  0.0, '')
@@ -71,7 +73,7 @@ tf.app.flags.DEFINE_integer('ep_len', 1000, '')
 tf.app.flags.DEFINE_integer('n_layers', 2, '')
 tf.app.flags.DEFINE_integer('size', 256, '')
 # MPC Controller
-tf.app.flags.DEFINE_integer('mpc_horizon', 15, '')
+tf.app.flags.DEFINE_integer('mpc_horizon', 7, '')
 
 tf.app.flags.DEFINE_boolean('mpc', False, 'Render or not')
 tf.app.flags.DEFINE_boolean('bc', False, 'Render or not')
@@ -113,9 +115,10 @@ def train(env,
     start = time.time()
 
     logz.configure_output_dir(logdir)
-    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op = build_summary_ops(logdir)
+    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, ppo_std_op, mpc_std_op = build_summary_ops(logdir)
 
     print("-------- env info --------")
+    print("Environment: ", FLAGS.env_name)
     print("observation_space: ", env.observation_space.shape)
     print("action_space: ", env.action_space.shape)
     print("BEHAVIORAL_CLONING: ", BEHAVIORAL_CLONING)
@@ -180,6 +183,7 @@ def train(env,
 
         mpc_ppo_controller = MPCcontrollerPolicyNetReward(env=env, 
                                        dyn_model=dyn_model, 
+                                       explore=FLAGS.MPC_EXP,
                                        policy_net=policy_nn,
                                        self_exp=FLAGS.SELFEXP,
                                        horizon=mpc_horizon, 
@@ -199,6 +203,7 @@ def train(env,
 
         mpc_ppo_controller = MPCcontrollerPolicyNet(env=env, 
                                        dyn_model=dyn_model, 
+                                       explore=FLAGS.MPC_EXP,
                                        policy_net=policy_nn,
                                        self_exp=FLAGS.SELFEXP,
                                        horizon=mpc_horizon, 
@@ -248,7 +253,7 @@ def train(env,
     bc = False
     ppo_mpc = False
     mpc_returns = 0
-
+    model_loss = 0
     for itr in range(onpol_iters):
 
         print(" ")
@@ -289,6 +294,8 @@ def train(env,
             ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
             model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
+        ppo_std = np.std(ac, axis=0)
+        print("ppo_std: ", ppo_std)
 
         ################## mpc augmented seg data
 
@@ -303,19 +310,22 @@ def train(env,
             ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_seg["ob"], mpc_seg["ac"], mpc_seg["mpcac"], mpc_seg["rew"], mpc_seg["nxt_ob"], mpc_seg["adv"], mpc_seg["tdlamret"]
             atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
-            # add into buffer
-            for n in range(len(ob)):
-                # if PPO:
-                #     ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
+            # # add into buffer
+            # for n in range(len(ob)):
+            #     # if PPO:
+            #     #     ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
 
-                if BEHAVIORAL_CLONING and bc:
-                    bc_data_buffer.add([ob[n], mpcac[n]])
+            #     if BEHAVIORAL_CLONING and bc:
+            #         bc_data_buffer.add([ob[n], mpcac[n]])
 
-                if MPC:
-                    model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
+            #     if MPC:
+            #         model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
 
             mpc_returns = mpc_seg["ep_rets"]
-
+            mpc_std = np.std(mpcac)
+            print("mpc_std: ", mpc_std)
+        if not mpc:
+            mpc_std = 0
 
         seg = ppo_seg
 
@@ -408,6 +418,8 @@ def train(env,
                   ppo_return_op:np.mean(returns),
                   mpc_return_op:np.mean(mpc_returns),
                   model_loss_op:model_loss,
+                  ppo_std_op:ppo_std,
+                  mpc_std_op:mpc_std,
                   })
         summary_writer.add_summary(summary_str, itr)
         summary_writer.flush()
@@ -419,14 +431,19 @@ def build_summary_ops(logdir):
     ppo_return_op =  tf.placeholder(tf.float32)
     mpc_return_op =  tf.placeholder(tf.float32)
     model_loss_op = tf.placeholder(tf.float32)
+    ppo_std_op =  tf.placeholder(tf.float32, shape=(6),)
+    mpc_std_op = tf.placeholder(tf.float32)
 
     tf.summary.scalar('mean_ppo_return', ppo_return_op)
     tf.summary.scalar('mean_mpc_return', mpc_return_op)
     tf.summary.scalar('model_loss', model_loss_op)
 
+    tf.summary.histogram('ppo_action_std', ppo_std_op)
+    tf.summary.scalar('mpc_action_std', mpc_std_op)
+
     merged_summary = tf.summary.merge_all()
 
-    return merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op
+    return merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, ppo_std_op, mpc_std_op
 
 
 
@@ -453,7 +470,12 @@ def main():
     # Make env
     if FLAGS.env_name == "HalfCheetah-v1":
         env = HalfCheetahEnvNew()
+        env.seed(FLAGS.seed)
         cost_fn = cheetah_cost_fn
+    else:
+        env = gym.make(FLAGS.env_name)
+        env.seed(FLAGS.seed)
+        cost_fn = None
         
     train(env=env, 
                  cost_fn=cost_fn,

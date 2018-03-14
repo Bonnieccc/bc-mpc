@@ -26,6 +26,7 @@ def cheetah_cost_fn(state, action, next_state):
         scores[front_foot>=my_range] += heading_penalty_factor
 
         scores-= (next_state[:,17] - state[:,17]) / 0.01 #+ 0.1 * (np.sum(action**2, axis=1))
+
         return scores
 
     heading_penalty_factor=10

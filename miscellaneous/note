@@ -7,7 +7,7 @@ optimization steps: ~320
 
 act(stochastic) is very important for ppo along, without stochasticy it diverge!
 lr 1e-4 learns slower but also more stable
-
+·
 BC:
 
 working lr: 1e-4
