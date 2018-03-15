@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore magnitude')
 
 # Experiment meta-params
 tf.app.flags.DEFINE_string('env_name', 'HalfCheetah-v1', 'Environment name')
-tf.app.flags.DEFINE_string('exp_name', 'mpc_bc_ppo', 'Experiment name')
+tf.app.flags.DEFINE_string('exp_name', 'temp', 'Experiment name')
 tf.app.flags.DEFINE_integer('seed', 3, 'random seed')
 tf.app.flags.DEFINE_boolean('render', False, 'Render or not')
 
@@ -49,7 +49,7 @@ tf.app.flags.DEFINE_integer('onpol_iters', 100, 'onpol_iters')
 tf.app.flags.DEFINE_integer('dyn_iters', 200, 'dyn_iters')
 tf.app.flags.DEFINE_integer('batch_size', 512, 'batch_size')
 tf.app.flags.DEFINE_integer('MODELBUFFER_SIZE', 1000000, 'MODELBUFFER_SIZE')
-tf.app.flags.DEFINE_boolean('LAYER_NORM', False, """Use layer normalization""")
+tf.app.flags.DEFINE_boolean('LAYER_NORM', True, """Use layer normalization""")
 
 # BC and PPO Training args
 tf.app.flags.DEFINE_float('bc_lr', 1e-3, '')
@@ -398,19 +398,35 @@ def train(env,
         iters_so_far += 1        
 
 
+        # log ppo
         logz.log_tabular("TimeSoFar", time.time() - start)
         logz.log_tabular("TimeEp", time.time() - tstart)
         logz.log_tabular("Iteration", iters_so_far)
         logz.log_tabular("AverageReturn", np.mean(returns))
-        logz.log_tabular("MpcReturn", np.mean(mpc_returns))
         logz.log_tabular("StdReturn", np.std(returns))
         logz.log_tabular("MaxReturn", np.max(returns))
         logz.log_tabular("MinReturn", np.min(returns))
         logz.log_tabular("EpLenMean", np.mean(ep_lengths))
         logz.log_tabular("EpLenStd", np.std(ep_lengths))
-        # logz.log_tabular("TimestepsThisBatch", timesteps_this_batch)
         logz.log_tabular("TimestepsSoFar", timesteps_so_far)
+        logz.log_tabular("Condition", "PPO")
         logz.dump_tabular()
+
+        # log mpc
+        if MPC:
+            logz.log_tabular("TimeSoFar", time.time() - start)
+            logz.log_tabular("TimeEp", time.time() - tstart)
+            logz.log_tabular("Iteration", iters_so_far)
+            logz.log_tabular("AverageReturn", np.mean(mpc_returns))
+            logz.log_tabular("StdReturn", np.std(mpc_returns))
+            logz.log_tabular("MaxReturn", np.max(mpc_returns))
+            logz.log_tabular("MinReturn", np.min(mpc_returns))
+            logz.log_tabular("EpLenMean", np.mean(ep_lengths))
+            logz.log_tabular("EpLenStd", np.std(ep_lengths))
+            logz.log_tabular("TimestepsSoFar", timesteps_so_far)
+            logz.log_tabular("Condition", "MPC")
+            logz.dump_tabular()
+            
         logz.pickle_tf_vars()
         tstart = time.time()
 
@@ -471,8 +487,10 @@ def main():
     # Make env
     if FLAGS.env_name == "HalfCheetah-v1":
         env = HalfCheetahEnvNew()
-        env.seed(FLAGS.seed)
         cost_fn = cheetah_cost_fn
+
+        # env = gym.make(FLAGS.env_name)
+        env.seed(FLAGS.seed)
     else:
         env = gym.make(FLAGS.env_name)
         env.seed(FLAGS.seed)

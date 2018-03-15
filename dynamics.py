@@ -1,6 +1,8 @@
 import tensorflow as tf
+import tensorflow.contrib.layers as layers
 import numpy as np
 
+FLAGS = tf.app.flags.FLAGS
 
 class NNDynamicsModel():
     def __init__(self, 
@@ -63,6 +65,8 @@ class NNDynamicsModel():
         with tf.variable_scope(scope):
             for _ in range(n_layers):
                 out = tf.layers.dense(out, size, activation=activation)
+                if FLAGS.LAYER_NORM:
+                  out = layers.layer_norm(out)
             out = tf.layers.dense(out, output_size, activation=output_activation)
         return out
 
@@ -158,16 +162,33 @@ class NNDynamicsRewardModel(NNDynamicsModel):
     def build_network(self, states_action_input, state_size, scope, activation=tf.tanh):
         # Predefined function to build a feedforward neural network with dynamic and reward
         with tf.variable_scope(scope):
-            # share layer
-            share = tf.layers.dense(states_action_input, 500, activation=activation)
+            if FLAGS.LAYER_NORM:
+              # share layer
+              share = tf.layers.dense(states_action_input, 500, activation=activation)
+              share = layers.layer_norm(share)
 
-            # state delta prediction
-            state_delta_predict = tf.layers.dense(share, 500, activation=activation)
-            state_delta_predict = tf.layers.dense(state_delta_predict, state_size, activation=None)
+              # state delta prediction
+              state_delta_predict = tf.layers.dense(share, 500, activation=activation)
+              state_delta_predict = layers.layer_norm(state_delta_predict)
 
-            # reward prediction
-            reward_predict = tf.layers.dense(share, 500, activation=activation)
-            reward_predict = tf.layers.dense(reward_predict, 1, activation=None)
+              state_delta_predict = tf.layers.dense(state_delta_predict, state_size, activation=None)
+
+              # reward prediction
+              reward_predict = tf.layers.dense(share, 500, activation=activation)
+              reward_predict = layers.layer_norm(reward_predict)
+
+              reward_predict = tf.layers.dense(reward_predict, 1, activation=None)
+            else:
+              # share layer
+              share = tf.layers.dense(states_action_input, 500, activation=activation)
+              # state delta prediction
+              state_delta_predict = tf.layers.dense(share, 500, activation=activation)
+              state_delta_predict = tf.layers.dense(state_delta_predict, state_size, activation=None)
+
+              # reward prediction
+              reward_predict = tf.layers.dense(share, 500, activation=activation)
+              reward_predict = tf.layers.dense(reward_predict, 1, activation=None)
+
 
         return state_delta_predict, reward_predict
 

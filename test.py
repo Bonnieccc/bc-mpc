@@ -1,8 +1,10 @@
-import numpy as np
+import numpy as np;
+import seaborn as sns; sns.set(color_codes=True)
+import matplotlib.pyplot as plt
 
-
-ac = np.random.rand(100,6)
-
-print(ac.shape)
-print("std ", np.std(ac))
-print("std ", np.std(ac, axis=0))
+gammas = sns.load_dataset("gammas")
+print(gammas)
+ax = sns.tsplot(time="timepoint", value="BOLD signal",
+                 unit="subject", condition="ROI",
+                 data=gammas)
+plt.show()

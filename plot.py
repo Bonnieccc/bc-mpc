@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 import os
-
+import numpy as np
 """
 Using the plotter:
 
@@ -48,18 +48,23 @@ the --legend flag and then provide a title for each logdir.
 
 """
 
-def plot_data(data, value="AverageReturn"):
+def plot_data(data):
     if isinstance(data, list):
-        data = pd.concat(data, ignore_index=True)
-    sns.set(style="darkgrid", font_scale=1.5)
-    sns.tsplot(data=data, time="Iteration", value=value, unit="Unit", condition="Condition")
-    sns.tsplot(data=data, color="g", time="Iteration", value="MpcReturn", unit="Unit", condition="Condition")
+        data = pd.concat(data, ignore_index=False)
 
-    plt.legend(loc='best').draggable()
+    sns.set(style="darkgrid", font_scale=1.5)
+
+    sns.tsplot(data=data, time="Iteration", value="AverageReturn", unit="Unit", condition="Condition")
+
+    # sns.tsplot(data=data,  color="g",  time="Iteration", value="MpcReturn", unit="Unit", condition="Condition")
+
+    # sns.tsplot(data=data, color="g", time="Iteration", value="MpcReturn", unit="Unit", condition="Condition")
+
+    # plt.legend(loc='best').draggable()
     plt.show()
 
 
-def get_datasets(fpath, condition=None):
+def get_datasets(fpath):
     unit = 0
     datasets = []
     for root, dir, files in os.walk(fpath):
@@ -76,11 +81,6 @@ def get_datasets(fpath, condition=None):
                 len(experiment_data.columns),
                 'Unit',
                 unit
-                )
-            experiment_data.insert(
-                len(experiment_data.columns),
-                'Condition',
-                condition or exp_name
                 )
 
             datasets.append(experiment_data)
@@ -116,7 +116,7 @@ def main():
     else:
         values = [args.value]
     for value in values:
-        plot_data(data, value=value)
+        plot_data(data)
 
 if __name__ == "__main__":
     main()
