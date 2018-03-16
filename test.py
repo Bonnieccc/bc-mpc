@@ -1,7 +1,7 @@
-import numpy as np;
+import numpy as np
 # import seaborn as sns; sns.set(color_codes=True)
 # import matplotlib.pyplot as plt
 
-actions = np.random.rand(2, 6) 
+np_action_paths = np.random.uniform(low=[0,0,0], high=[1,1,0.1] , size=[2, 10, 3])
 
-print(actions)
+print(np_action_paths)

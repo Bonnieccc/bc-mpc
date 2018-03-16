@@ -173,13 +173,7 @@ class MPCcontrollerPolicyNet(Controller):
     def sample_random_actions(self):
       
         # sample random action trajectories
-        actions = []
-        for n in range(self.num_simulated_paths):
-            for h in range(self.horizon):
-                actions.append(self.env.action_space.sample())
-
-        np_action_paths = np.asarray(actions)
-        np_action_paths = np.reshape(np_action_paths, [self.horizon, self.num_simulated_paths, -1])
+        np_action_paths = np.random.uniform(low=self.env.action_space.low, high=self.env.action_space.high , size=[self.horizon, self.num_simulated_paths, len(self.env.action_space.high)])
 
         return np_action_paths
 
@@ -255,17 +249,11 @@ class MPCcontrollerPolicyNetReward(Controller):
         self.self_exp = self_exp
         self.explore = explore
 
-    
+
     def sample_random_actions(self):
       
         # sample random action trajectories
-        actions = []
-        for n in range(self.num_simulated_paths):
-            for h in range(self.horizon):
-                actions.append(self.env.action_space.sample())
-
-        np_action_paths = np.asarray(actions)
-        np_action_paths = np.reshape(np_action_paths, [self.horizon, self.num_simulated_paths, -1])
+        np_action_paths = np.random.uniform(low=self.env.action_space.low, high=self.env.action_space.high , size=[self.horizon, self.num_simulated_paths, len(self.env.action_space.high)])
 
         return np_action_paths
 
