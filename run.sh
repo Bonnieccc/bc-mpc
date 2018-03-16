@@ -1,12 +1,12 @@
 
 
-for seed in 3 4 5
+for MPC_EXP in  0 0.2, 0.4 0.6 0.8 1
 do
-    MPC_EXP=0.2
+    seed=1
     ppo_lr=1e-4
-    name=mpc_ppo_seed_${seed}
+    name=exp_test_${seed}_mpc_exp_${MPC_EXP}
 
-    nohup python -u train_mpc_ppo.py  --SELFEXP=False --exp_name=${name} --seed=${seed} --LEARN_REWARD=False --mpc=True --ppo=True --ppo_lr=${ppo_lr} --LAYER_NORM=${True}&
+    nohup python -u train_mpc_ppo.py --MPC_EXP=${MPC_EXP} --SELFEXP=False --exp_name=${name} --mpc_rand=False --seed=${seed} --LEARN_REWARD=False --mpc=True --ppo=True --ppo_lr=${ppo_lr} --LAYER_NORM=True&
 
 done
 

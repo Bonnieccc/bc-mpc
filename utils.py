@@ -188,7 +188,7 @@ def traj_segment_generator(pi, mpc_controller, mpc_ppo_controller, bc_data_buffe
         if ppo_mpc:
             print("Using ppo mpc")
         else:
-            print("Using normal mpc")
+            print("Using random mpc")
 
     while True:
         prevac = ac

@@ -54,7 +54,7 @@ def plot_data(data):
 
     sns.set(style="darkgrid", font_scale=1.5)
 
-    sns.tsplot(data=data, time="Iteration", value="AverageReturn", unit="Unit", condition="Condition")
+    sns.tsplot(data=data, time="Iteration", value="AverageReturn", ci='sd', unit="Unit", condition="Condition")
 
     # sns.tsplot(data=data,  color="g",  time="Iteration", value="MpcReturn", unit="Unit", condition="Condition")
 

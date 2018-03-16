@@ -170,9 +170,24 @@ class MPCcontrollerPolicyNet(Controller):
         self.self_exp = self_exp
         self.explore = explore
 
+    def sample_random_actions(self):
+      
+        # sample random action trajectories
+        actions = []
+        for n in range(self.num_simulated_paths):
+            for h in range(self.horizon):
+                actions.append(self.env.action_space.sample())
+
+        np_action_paths = np.asarray(actions)
+        np_action_paths = np.reshape(np_action_paths, [self.horizon, self.num_simulated_paths, -1])
+
+        return np_action_paths
+
+
     def get_action(self, state):
         """ YOUR CODE HERE """
         """ Note: be careful to batch your simulations through the model for speed """
+        exploration = self.sample_random_actions()
 
         # get init observations and copy num_simulated_paths times
         states = np.tile(state, [self.num_simulated_paths, 1])
@@ -186,8 +201,9 @@ class MPCcontrollerPolicyNet(Controller):
                 actions, _ = self.policy_net.act(states, stochastic=True)
             else:
                 actions, _ = self.policy_net.act(states, stochastic=False)
-                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
+                # actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
 
+                actions = (1 - self.explore) * actions + self.explore * exploration[i, :, :]
 
             states = self.dyn_model.predict(states, actions)
 
@@ -238,9 +254,25 @@ class MPCcontrollerPolicyNetReward(Controller):
         self.num_simulated_paths = num_simulated_paths
         self.self_exp = self_exp
         self.explore = explore
+
+    
+    def sample_random_actions(self):
+      
+        # sample random action trajectories
+        actions = []
+        for n in range(self.num_simulated_paths):
+            for h in range(self.horizon):
+                actions.append(self.env.action_space.sample())
+
+        np_action_paths = np.asarray(actions)
+        np_action_paths = np.reshape(np_action_paths, [self.horizon, self.num_simulated_paths, -1])
+
+        return np_action_paths
+
     def get_action(self, state):
         """ YOUR CODE HERE """
         """ Note: be careful to batch your simulations through the model for speed """
+        exploration = self.sample_random_actions()
 
         # get init observations and copy num_simulated_paths times
         states = np.tile(state, [self.num_simulated_paths, 1])
@@ -256,8 +288,10 @@ class MPCcontrollerPolicyNetReward(Controller):
                 actions, _ = self.policy_net.act(states, stochastic=True)
             else:
                 actions, _ = self.policy_net.act(states, stochastic=False)
-                actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
-                
+                # actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
+                actions = (1 - self.explore) * actions + self.explore * exploration[i, :, :]
+
+
             states, reward = self.dyn_model.predict(states, actions)
 
             # states = self.dyn_model.predict(states, action_paths[i, :, :])

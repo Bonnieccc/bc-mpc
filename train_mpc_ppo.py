@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumen
 tf.app.flags.DEFINE_string('CHECKPOINT_DIR', 'checkpoints_bcmpc_noisy/', "Checkpoints save directory")
 tf.app.flags.DEFINE_boolean('LOAD_MODEL', False, """Load model or not""")
 tf.app.flags.DEFINE_boolean('SELFEXP', False, """Use external exploration or ppo's own exp""")
-tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore magnitude')
+tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore ratio [0, 1]')
 
 
 # Experiment meta-params
@@ -76,9 +76,10 @@ tf.app.flags.DEFINE_integer('size', 256, '')
 # MPC Controller
 tf.app.flags.DEFINE_integer('mpc_horizon', 7, '')
 
-tf.app.flags.DEFINE_boolean('mpc', False, 'Render or not')
-tf.app.flags.DEFINE_boolean('bc', False, 'Render or not')
-tf.app.flags.DEFINE_boolean('ppo', True, 'Render or not')
+tf.app.flags.DEFINE_boolean('mpc', False, 'mpc or not')
+tf.app.flags.DEFINE_boolean('mpc_rand', False, 'mpc_rand or not')
+tf.app.flags.DEFINE_boolean('ppo', True, 'ppo or not')
+tf.app.flags.DEFINE_boolean('bc', False, 'bc or not')
 
 ############################
 def train(env, 
@@ -122,6 +123,9 @@ def train(env,
     print("Environment: ", FLAGS.env_name)
     print("observation_space: ", env.observation_space.shape)
     print("action_space: ", env.action_space.shape)
+    print("action_space low: ", env.action_space.low)
+    print("action_space high: ", env.action_space.high)
+
     print("BEHAVIORAL_CLONING: ", BEHAVIORAL_CLONING)
     print("PPO: ", PPO)
     print("MPC-AUG: ", MPC)
@@ -300,7 +304,7 @@ def train(env,
 
         ################## mpc augmented seg data
 
-        if itr % FLAGS.MPC_AUG_GAP == 0 and MPC:
+        if MPC:
             print("MPC AUG PPO")
 
             ppo_mpc = True
@@ -324,9 +328,38 @@ def train(env,
 
             mpc_returns = mpc_seg["ep_rets"]
             mpc_std = np.std(mpcac)
-            print("mpc_std: ", mpc_std)
-        if not mpc:
+
+        if not MPC:
             mpc_std = 0
+
+
+        ################## mpc random seg data
+
+        if FLAGS.mpc_rand:
+            print("MPC Random base policy")
+
+            ppo_mpc = False
+            mpc = True
+            mpc_random_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
+            add_vtarg_and_adv(mpc_random_seg, gamma, lam)
+
+            ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_random_seg["ob"], mpc_random_seg["ac"], mpc_random_seg["mpcac"], mpc_random_seg["rew"], mpc_random_seg["nxt_ob"], mpc_random_seg["adv"], mpc_random_seg["tdlamret"]
+            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+
+            # # add into buffer
+            # for n in range(len(ob)):
+            #     # if PPO:
+            #     #     ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
+
+            #     if BEHAVIORAL_CLONING and bc:
+            #         bc_data_buffer.add([ob[n], mpcac[n]])
+
+            #     if MPC:
+            #         model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
+
+            mpc_rand_returns = mpc_random_seg["ep_rets"]
+
+
 
         seg = ppo_seg
 
@@ -424,9 +457,24 @@ def train(env,
             logz.log_tabular("EpLenMean", np.mean(ep_lengths))
             logz.log_tabular("EpLenStd", np.std(ep_lengths))
             logz.log_tabular("TimestepsSoFar", timesteps_so_far)
-            logz.log_tabular("Condition", "MPC")
+            logz.log_tabular("Condition", "MPC_PPO")
             logz.dump_tabular()
-            
+
+        if FLAGS.mpc_rand:
+            logz.log_tabular("TimeSoFar", time.time() - start)
+            logz.log_tabular("TimeEp", time.time() - tstart)
+            logz.log_tabular("Iteration", iters_so_far)
+            logz.log_tabular("AverageReturn", np.mean(mpc_rand_returns))
+            logz.log_tabular("StdReturn", np.std(mpc_rand_returns))
+            logz.log_tabular("MaxReturn", np.max(mpc_rand_returns))
+            logz.log_tabular("MinReturn", np.min(mpc_rand_returns))
+            logz.log_tabular("EpLenMean", np.mean(ep_lengths))
+            logz.log_tabular("EpLenStd", np.std(ep_lengths))
+            logz.log_tabular("TimestepsSoFar", timesteps_so_far)
+            logz.log_tabular("Condition", "MPC_RAND")
+            logz.dump_tabular()
+
+
         logz.pickle_tf_vars()
         tstart = time.time()
 
