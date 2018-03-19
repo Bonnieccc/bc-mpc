@@ -20,3 +20,7 @@ optimization steps: ~2000-3000 (depends on how many data in buffer, if buffer is
 Try use bc action as real
 Use all action from bc still can't increase bc (~400) there should be something wrong with BC it self
 
+
+3.17 
+
+MPC PPO with reward learning, determinisitc ppo with 0 exploration seem pretty good!

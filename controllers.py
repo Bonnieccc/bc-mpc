@@ -18,6 +18,7 @@ class RandomController(Controller):
         self.env = env
 
     def get_action(self, state):
+
         """ YOUR CODE HERE """
         """ Your code should randomly sample an action uniformly from the action space """
         return self.env.action_space.sample()
@@ -40,20 +41,20 @@ class MPCcontroller(Controller):
     def sample_random_actions(self):
       
         # sample random action trajectories
-        actions = []
-        for n in range(self.num_simulated_paths):
-            for h in range(self.horizon):
-                actions.append(self.env.action_space.sample())
+        # actions = []
+        # for n in range(self.num_simulated_paths):
+        #     for h in range(self.horizon):
+        #         actions.append(self.env.action_space.sample())
 
-        np_action_paths = np.asarray(actions)
-        np_action_paths = np.reshape(np_action_paths, [self.horizon, self.num_simulated_paths, -1])
+        # np_action_paths = np.asarray(actions)
+        # np_action_paths = np.reshape(np_action_paths, [self.horizon, self.num_simulated_paths, -1])
+        np_action_paths = np.random.uniform(low=self.env.action_space.low, high=self.env.action_space.high , size=[self.horizon, self.num_simulated_paths, len(self.env.action_space.high)])
 
         return np_action_paths
 
     def get_action(self, state):
         """ YOUR CODE HERE """
         """ Note: be careful to batch your simulations through the model for speed """
-
         action_paths = self.sample_random_actions()
 
         # get init observations and copy num_simulated_paths times
@@ -61,6 +62,7 @@ class MPCcontroller(Controller):
 
         states_paths_all = []
         states_paths_all.append(states)
+
 
         for i in range(self.horizon):
             states = self.dyn_model.predict(states, action_paths[i, :, :])
@@ -112,6 +114,7 @@ class MPCcontrollerReward(Controller):
         return np_action_paths
 
     def get_action(self, state):
+
         """ YOUR CODE HERE """
         """ Note: be careful to batch your simulations through the model for speed """
 
@@ -258,6 +261,7 @@ class MPCcontrollerPolicyNetReward(Controller):
         return np_action_paths
 
     def get_action(self, state):
+
         """ YOUR CODE HERE """
         """ Note: be careful to batch your simulations through the model for speed """
         exploration = self.sample_random_actions()
@@ -279,7 +283,6 @@ class MPCcontrollerPolicyNetReward(Controller):
                 # actions += np.random.rand(self.num_simulated_paths, self.env.action_space.shape[0]) * (2*self.explore) - self.explore
                 actions = (1 - self.explore) * actions + self.explore * exploration[i, :, :]
 
-
             states, reward = self.dyn_model.predict(states, actions)
 
             # states = self.dyn_model.predict(states, action_paths[i, :, :])
@@ -299,3 +302,14 @@ class MPCcontrollerPolicyNetReward(Controller):
         opt_action = copy.copy(opt_action_path[0])
 
         return opt_action
+
+
+
+
+
+
+
+
+
+
+

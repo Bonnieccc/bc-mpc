@@ -101,7 +101,7 @@ class NNDynamicsModel():
                                      self.states_delta:normalized_sample_state_delta})
             
             # print("loss ", i, " : ", loss)
-        return loss
+        return loss, 0
 
     def predict(self, unnormalized_state, unnormalized_action):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions and return the (unnormalized) next states as predicted by using the model """
@@ -209,14 +209,14 @@ class NNDynamicsRewardModel(NNDynamicsModel):
             normalized_sample_nxt_state =  self.normalize(sample_nxt_state, self.std_obs, self.mean_obs)
             normalized_sample_state_delta =  self.normalize(sample_state_delta, self.std_deltas, self.mean_deltas)
 
-            loss, _ = self.sess.run([self.loss, self.train_step], 
+            model_loss, reward_loss, _ = self.sess.run([self.loss_dynamic, self.loss_reward, self.train_step], 
                           feed_dict={self.states_input_placeholder:normalized_sample_state, 
                                      self.actions_input_placeholder:normalized_sample_action,
                                      self.reward:np.reshape(normalized_sample_reward, [-1, 1]),
                                      self.states_delta:normalized_sample_state_delta})
             
             # print("loss ", i, " : ", loss)
-        return loss
+        return model_loss, reward_loss
 
     def predict(self, unnormalized_state, unnormalized_action):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions and return the (unnormalized) next states as predicted by using the model """

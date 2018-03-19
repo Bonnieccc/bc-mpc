@@ -31,7 +31,7 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_boolean('LEARN_REWARD', False, "Learn reward function or use cost function as mpc evaluation")
 tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumentation ")
-tf.app.flags.DEFINE_string('CHECKPOINT_DIR', 'checkpoints_bcmpc_noisy/', "Checkpoints save directory")
+tf.app.flags.DEFINE_integer('SAVE_ITER', 1, "In how many iterations save model once")
 tf.app.flags.DEFINE_boolean('LOAD_MODEL', False, """Load model or not""")
 tf.app.flags.DEFINE_boolean('SELFEXP', False, """Use external exploration or ppo's own exp""")
 tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore ratio [0, 1]')
@@ -53,7 +53,7 @@ tf.app.flags.DEFINE_boolean('LAYER_NORM', True, """Use layer normalization""")
 
 # BC and PPO Training args
 tf.app.flags.DEFINE_float('bc_lr', 1e-3, '')
-tf.app.flags.DEFINE_float('ppo_lr',  3e-4, '')
+tf.app.flags.DEFINE_float('ppo_lr',  1e-4, '')
 tf.app.flags.DEFINE_float('clip_param', 0.2, '')
 tf.app.flags.DEFINE_float('gamma', 0.99, '')
 tf.app.flags.DEFINE_float('entcoeff',  0.0, '')
@@ -117,7 +117,7 @@ def train(env,
     start = time.time()
 
     logz.configure_output_dir(logdir)
-    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, ppo_std_op, mpc_std_op = build_summary_ops(logdir, env)
+    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, reward_loss_op, ppo_std_op, mpc_std_op = build_summary_ops(logdir, env)
 
     print("-------- env info --------")
     print("Environment: ", FLAGS.env_name)
@@ -233,15 +233,15 @@ def train(env,
     # init or load checkpoint with saver
     saver = tf.train.Saver()
 
-    checkpoint = tf.train.get_checkpoint_state(FLAGS.CHECKPOINT_DIR)
+    checkpoint = tf.train.get_checkpoint_state(logdir)
 
     if checkpoint and checkpoint.model_checkpoint_path and FLAGS.LOAD_MODEL:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("checkpoint loaded:", checkpoint.model_checkpoint_path)
     else:
         print("Could not find old checkpoint")
-        if not os.path.exists(FLAGS.CHECKPOINT_DIR):
-          os.mkdir(FLAGS.CHECKPOINT_DIR)  
+        if not os.path.exists(logdir):
+          os.mkdir(logdir)  
 
     #========================================================
     # 
@@ -250,7 +250,6 @@ def train(env,
 
     episodes_so_far = 0
     timesteps_so_far = 0
-    iters_so_far = 0
     tstart = time.time()
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
@@ -277,7 +276,7 @@ def train(env,
 
         ################## fit mpc model
         if MPC:
-            model_loss = dyn_model.fit(model_data_buffer)
+            model_loss, reward_loss = dyn_model.fit(model_data_buffer)
 
 
         ################## ppo seg data
@@ -315,17 +314,6 @@ def train(env,
             ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_seg["ob"], mpc_seg["ac"], mpc_seg["mpcac"], mpc_seg["rew"], mpc_seg["nxt_ob"], mpc_seg["adv"], mpc_seg["tdlamret"]
             atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
-            # # add into buffer
-            # for n in range(len(ob)):
-            #     # if PPO:
-            #     #     ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
-
-            #     if BEHAVIORAL_CLONING and bc:
-            #         bc_data_buffer.add([ob[n], mpcac[n]])
-
-            #     if MPC:
-            #         model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
-
             mpc_returns = mpc_seg["ep_rets"]
             mpc_std = np.std(mpcac)
 
@@ -346,43 +334,13 @@ def train(env,
             ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_random_seg["ob"], mpc_random_seg["ac"], mpc_random_seg["mpcac"], mpc_random_seg["rew"], mpc_random_seg["nxt_ob"], mpc_random_seg["adv"], mpc_random_seg["tdlamret"]
             atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
 
-            # # add into buffer
-            # for n in range(len(ob)):
-            #     # if PPO:
-            #     #     ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
-
-            #     if BEHAVIORAL_CLONING and bc:
-            #         bc_data_buffer.add([ob[n], mpcac[n]])
-
-            #     if MPC:
-            #         model_data_buffer.add([ob[n], mpcac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
-
             mpc_rand_returns = mpc_random_seg["ep_rets"]
 
 
 
-        seg = ppo_seg
 
-        # check if seg is good
-        ep_lengths = seg["ep_lens"]
-        returns =  seg["ep_rets"]
-
-        # saver.save(sess, FLAGS.CHECKPOINT_DIR)
-        if BEHAVIORAL_CLONING:
-            if np.mean(returns) > 100:
-                bc = True
-            else:
-                bc = False
-
-            print("BEHAVIORAL_CLONING: ", bc)
-
-
-            bc_return = policy_net_eval(sess, env, policy_nn, env_horizon)
-
-            if bc_return > 100:
-                ppo_mpc = True
-            else:
-                ppo_mpc = False
+        ################# PPO deterministic evaluation
+        ppo_determinisitc_return = policy_net_eval(sess, env, policy_nn, env_horizon, stochastic=False)
 
 
         ################## optimization
@@ -418,6 +376,10 @@ def train(env,
 
 
         ################## print and save data
+        seg = ppo_seg
+
+        ep_lengths = seg["ep_lens"]
+        returns =  seg["ep_rets"]
 
         lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
 
@@ -428,13 +390,12 @@ def train(env,
         rewbuffer.extend(rews)
         episodes_so_far += len(lens)
         timesteps_so_far += sum(lens)
-        iters_so_far += 1        
 
 
         # log ppo
         logz.log_tabular("TimeSoFar", time.time() - start)
         logz.log_tabular("TimeEp", time.time() - tstart)
-        logz.log_tabular("Iteration", iters_so_far)
+        logz.log_tabular("Iteration", itr)
         logz.log_tabular("AverageReturn", np.mean(returns))
         logz.log_tabular("StdReturn", np.std(returns))
         logz.log_tabular("MaxReturn", np.max(returns))
@@ -445,11 +406,17 @@ def train(env,
         logz.log_tabular("Condition", "PPO")
         logz.dump_tabular()
 
+        # log ppo deterministic
+        logz.log_tabular("Iteration", itr)
+        logz.log_tabular("AverageReturn", ppo_determinisitc_return)
+        logz.log_tabular("Condition", "PPO_DETERMINISTIC")
+        logz.dump_tabular()
+
         # log mpc
         if MPC:
             logz.log_tabular("TimeSoFar", time.time() - start)
             logz.log_tabular("TimeEp", time.time() - tstart)
-            logz.log_tabular("Iteration", iters_so_far)
+            logz.log_tabular("Iteration", itr)
             logz.log_tabular("AverageReturn", np.mean(mpc_returns))
             logz.log_tabular("StdReturn", np.std(mpc_returns))
             logz.log_tabular("MaxReturn", np.max(mpc_returns))
@@ -463,7 +430,7 @@ def train(env,
         if FLAGS.mpc_rand:
             logz.log_tabular("TimeSoFar", time.time() - start)
             logz.log_tabular("TimeEp", time.time() - tstart)
-            logz.log_tabular("Iteration", iters_so_far)
+            logz.log_tabular("Iteration", itr)
             logz.log_tabular("AverageReturn", np.mean(mpc_rand_returns))
             logz.log_tabular("StdReturn", np.std(mpc_rand_returns))
             logz.log_tabular("MaxReturn", np.max(mpc_rand_returns))
@@ -475,7 +442,7 @@ def train(env,
             logz.dump_tabular()
 
 
-        logz.pickle_tf_vars()
+        # logz.pickle_tf_vars()
         tstart = time.time()
 
         ################### TF Summaries
@@ -484,10 +451,17 @@ def train(env,
                   mpc_return_op:np.mean(mpc_returns),
                   model_loss_op:model_loss,
                   ppo_std_op:ppo_std,
+                  reward_loss_op:reward_loss,
                   mpc_std_op:mpc_std,
                   })
         summary_writer.add_summary(summary_str, itr)
         summary_writer.flush()
+
+
+        ################ TF SAVE
+        if itr % FLAGS.SAVE_ITER == 0 and itr != 0:
+            save_path = saver.save(sess, logdir)
+            print("Model saved in path: %s" % save_path)
 
 def build_summary_ops(logdir, env):
 
@@ -496,19 +470,21 @@ def build_summary_ops(logdir, env):
     ppo_return_op =  tf.placeholder(tf.float32)
     mpc_return_op =  tf.placeholder(tf.float32)
     model_loss_op = tf.placeholder(tf.float32)
+    reward_loss_op = tf.placeholder(tf.float32)
+
     ppo_std_op =  tf.placeholder(tf.float32, shape=(env.action_space.shape))
     mpc_std_op = tf.placeholder(tf.float32)
 
     tf.summary.scalar('mean_ppo_return', ppo_return_op)
     tf.summary.scalar('mean_mpc_return', mpc_return_op)
     tf.summary.scalar('model_loss', model_loss_op)
-
+    tf.summary.scalar('reward_loss', reward_loss_op)
     tf.summary.histogram('ppo_action_std', ppo_std_op)
     tf.summary.scalar('mpc_action_std', mpc_std_op)
 
     merged_summary = tf.summary.merge_all()
 
-    return merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, ppo_std_op, mpc_std_op
+    return merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, reward_loss_op, ppo_std_op, mpc_std_op
 
 
 

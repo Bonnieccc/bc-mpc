@@ -257,7 +257,7 @@ def add_vtarg_and_adv(seg, gamma=0.99, lam=0.95):
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
-def policy_net_eval(sess, env, policy_net, env_horizon):
+def policy_net_eval(sess, env, policy_net, env_horizon, stochastic=False):
     print('---------- Policy Net Performance ---------')
     # st = env.reset_model()
     st = env.reset()
@@ -265,7 +265,7 @@ def policy_net_eval(sess, env, policy_net, env_horizon):
     returns = 0
 
     for j in range(env_horizon):
-        at, vpred = policy_net.act(st, stochastic=False)
+        at, vpred = policy_net.act(st, stochastic=stochastic)
         # print(at)
         nxt_st, r, _, _ = env.step(at)
         st = nxt_st
