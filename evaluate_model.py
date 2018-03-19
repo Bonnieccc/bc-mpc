@@ -9,6 +9,7 @@ import logz
 import os
 import copy
 import pickle
+import pandas as pd
 
 import matplotlib.pyplot as plt
 from cheetah_env import HalfCheetahEnvNew
@@ -32,7 +33,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('LEARN_REWARD', False, "Learn reward function or use cost function as mpc evaluation")
 tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumentation ")
 tf.app.flags.DEFINE_integer('SAVE_ITER', 1, "In how many iterations save model once")
-tf.app.flags.DEFINE_boolean('LOAD_MODEL', False, """Load model or not""")
+tf.app.flags.DEFINE_boolean('LOAD_MODEL', True, """Load model or not""")
 tf.app.flags.DEFINE_boolean('SELFEXP', False, """Use external exploration or ppo's own exp""")
 tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore ratio [0, 1]')
 
@@ -40,6 +41,8 @@ tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore ratio [0, 1]')
 # Experiment meta-params
 tf.app.flags.DEFINE_string('env_name', 'HalfCheetah-v1', 'Environment name')
 tf.app.flags.DEFINE_string('exp_name', 'temp', 'Experiment name')
+tf.app.flags.DEFINE_string('model_path', 'temp', 'model')
+
 tf.app.flags.DEFINE_integer('seed', 3, 'random seed')
 tf.app.flags.DEFINE_boolean('render', False, 'Render or not')
 
@@ -116,8 +119,6 @@ def train(env,
 
     start = time.time()
 
-    logz.configure_output_dir(logdir)
-    merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, reward_loss_op, ppo_std_op, mpc_std_op = build_summary_ops(logdir, env)
 
     print("-------- env info --------")
     print("Environment: ", FLAGS.env_name)
@@ -233,258 +234,65 @@ def train(env,
     # init or load checkpoint with saver
     saver = tf.train.Saver()
 
-    checkpoint = tf.train.get_checkpoint_state(logdir)
+    checkpoint = tf.train.get_checkpoint_state(FLAGS.model_path)
+
+    print("checkpoint", checkpoint)
 
     if checkpoint and checkpoint.model_checkpoint_path and FLAGS.LOAD_MODEL:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("checkpoint loaded:", checkpoint.model_checkpoint_path)
     else:
         print("Could not find old checkpoint")
-        if not os.path.exists(logdir):
-          os.mkdir(logdir)  
+        if not os.path.exists(FLAGS.model_path):
+          os.mkdir(FLAGS.model_path)  
 
     #========================================================
     # 
     # Prepare for rollouts
     # 
 
-    episodes_so_far = 0
-    timesteps_so_far = 0
     tstart = time.time()
-    lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
-    rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
-    max_timesteps = num_paths_onpol * env_horizon
-    bc = False
-    ppo_mpc = False
-    mpc_returns = 0
-    model_loss = 0
-    for itr in range(onpol_iters):
-
-        print(" ")
-
-        print("onpol_iters: ", itr)
-
-        if schedule == 'constant':
-            cur_lrmult = 1.0
-        elif schedule == 'linear':
-            cur_lrmult =  max(1.0 - float(timesteps_so_far) / max_timesteps, 0)
-            
-
-        print("bc learning_rate: ",  bc_lr)
-        print("ppo learning_rate: ",  ppo_lr)
 
 
-        ################## fit mpc model
-        if MPC:
-            model_loss, reward_loss = dyn_model.fit(model_data_buffer)
+    states_true = []
+    states_predict = []
+    rewards_true = []
+    rewards_predict = []
+    ob = env.reset()
+    ob_pre = np.expand_dims(ob, axis=0)
 
+    states_true.append(ob)
+    states_predict.append(ob_pre)
 
-        ################## ppo seg data
-        ppo_data_buffer.clear()
+    for step in range(100):
+        # ac = env.action_space.sample() # not used, just so we have the datatype
+        ac, _ = policy_nn.act(ob, stochastic=True)
+        ob, rew, done, _ = env.step(ac)
+        ob_pre, r_pre = dyn_model.predict(ob_pre, ac)
+        states_true.append(ob)
+        rewards_true.append(rew)
+        states_predict.append(ob_pre)
+        rewards_predict.append(r_pre[0][0])
 
-        # ppo_seg = traj_segment_generator_ppo(policy_nn, env, env_horizon)
-        mpc = False
-        ppo_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
+    states_true = np.asarray(states_true)
+    states_predict = np.asarray(states_predict)
+    states_predict = np.squeeze(states_predict, axis=1)
+    rewards_true = np.asarray(rewards_true)
+    rewards_predict = np.asarray(rewards_predict)
 
-        add_vtarg_and_adv(ppo_seg, gamma, lam)
+    print("states_true", states_true.shape)
+    print("states_predict", states_predict.shape)
+    print("rewards_true", rewards_true.shape)
+    print("rewards_predict", rewards_predict.shape)
 
-        ob, ac, rew, nxt_ob, atarg, tdlamret = \
-        ppo_seg["ob"], ppo_seg["ac"], ppo_seg["rew"], ppo_seg["nxt_ob"], ppo_seg["adv"], ppo_seg["tdlamret"]
+    np.savetxt('./data/eval_model/states_true.out', states_true, delimiter=',') 
+    np.savetxt('./data/eval_model/states_predict.out', states_predict, delimiter=',') 
 
-        atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
+    np.savetxt('./data/eval_model/rewards_true.out', rewards_true, delimiter=',') 
+    np.savetxt('./data/eval_model/rewards_predict.out', rewards_predict, delimiter=',') 
 
-        # add into buffer
-        for n in range(len(ob)):
-            ppo_data_buffer.add([ob[n], ac[n], atarg[n], tdlamret[n]])
-            model_data_buffer.add([ob[n], ac[n], rew[n], nxt_ob[n], nxt_ob[n]-ob[n]])
-
-        ppo_std = np.std(ac, axis=0)
-        print("ppo_std: ", ppo_std)
-
-        ################## mpc augmented seg data
-
-        if MPC:
-            print("MPC AUG PPO")
-
-            ppo_mpc = True
-            mpc = True
-            mpc_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
-            add_vtarg_and_adv(mpc_seg, gamma, lam)
-
-            ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_seg["ob"], mpc_seg["ac"], mpc_seg["mpcac"], mpc_seg["rew"], mpc_seg["nxt_ob"], mpc_seg["adv"], mpc_seg["tdlamret"]
-            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
-
-            mpc_returns = mpc_seg["ep_rets"]
-            mpc_std = np.std(mpcac)
-
-        if not MPC:
-            mpc_std = 0
-
-
-        ################## mpc random seg data
-
-        if FLAGS.mpc_rand:
-            print("MPC Random base policy")
-
-            ppo_mpc = False
-            mpc = True
-            mpc_random_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
-            add_vtarg_and_adv(mpc_random_seg, gamma, lam)
-
-            ob, ac, mpcac, rew, nxt_ob, atarg, tdlamret = mpc_random_seg["ob"], mpc_random_seg["ac"], mpc_random_seg["mpcac"], mpc_random_seg["rew"], mpc_random_seg["nxt_ob"], mpc_random_seg["adv"], mpc_random_seg["tdlamret"]
-            atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
-
-            mpc_rand_returns = mpc_random_seg["ep_rets"]
-
-
-
-
-        ################# PPO deterministic evaluation
-        ppo_determinisitc_return = policy_net_eval(sess, env, policy_nn, env_horizon, stochastic=False)
-
-
-        ################## optimization
-
-        print("ppo_data_buffer size", ppo_data_buffer.size)
-        print("bc_data_buffer size", bc_data_buffer.size)
-        print("model data buffer size: ", model_data_buffer.size)
-
-        # optim_batchsize = optim_batchsize or ob.shape[0]
-
-        if hasattr(policy_nn, "ob_rms"): policy_nn.ob_rms.update(ob) # update running mean/std for policy
-        policy_nn.assign_old_eq_new() # set old parameter values to new parameter values
-        
-        for op_ep in range(optim_epochs):
-            # losses = [] # list of tuples, each of which gives the loss for a minibatch
-            # for i in range(int(timesteps_per_actorbatch/optim_batchsize)):
-
-            if PPO:
-                sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target = ppo_data_buffer.sample(optim_batchsize)
-                newlosses = policy_nn.lossandupdate_ppo(sample_ob_no, sample_ac_na, sample_adv_n, sample_b_n_target, cur_lrmult, ppo_lr*cur_lrmult)
-                # losses.append(newlosses)
-
-            if BEHAVIORAL_CLONING and bc:
-                sample_ob_no, sample_ac_na = bc_data_buffer.sample(optim_batchsize)
-                # print("sample_ob_no", sample_ob_no.shape)
-                # print("sample_ac_na", sample_ac_na.shape)
-
-                policy_nn.update_bc(sample_ob_no, sample_ac_na, bc_lr*cur_lrmult)
-
-            if op_ep % (100) == 0 and BEHAVIORAL_CLONING and bc:
-                print('epcho: ', op_ep)
-                policy_net_eval(sess, env, policy_nn, env_horizon)
-
-
-        ################## print and save data
-        seg = ppo_seg
-
-        ep_lengths = seg["ep_lens"]
-        returns =  seg["ep_rets"]
-
-        lrlocal = (seg["ep_lens"], seg["ep_rets"]) # local values
-
-
-        listoflrpairs = MPI.COMM_WORLD.allgather(lrlocal) # list of tuples
-        lens, rews = map(flatten_lists, zip(*listoflrpairs))
-        lenbuffer.extend(lens)
-        rewbuffer.extend(rews)
-        episodes_so_far += len(lens)
-        timesteps_so_far += sum(lens)
-
-
-        # log ppo
-        logz.log_tabular("TimeSoFar", time.time() - start)
-        logz.log_tabular("TimeEp", time.time() - tstart)
-        logz.log_tabular("Iteration", itr)
-        logz.log_tabular("AverageReturn", np.mean(returns))
-        logz.log_tabular("StdReturn", np.std(returns))
-        logz.log_tabular("MaxReturn", np.max(returns))
-        logz.log_tabular("MinReturn", np.min(returns))
-        logz.log_tabular("EpLenMean", np.mean(ep_lengths))
-        logz.log_tabular("EpLenStd", np.std(ep_lengths))
-        logz.log_tabular("TimestepsSoFar", timesteps_so_far)
-        logz.log_tabular("Condition", "PPO")
-        logz.dump_tabular()
-
-        # log ppo deterministic
-        logz.log_tabular("Iteration", itr)
-        logz.log_tabular("AverageReturn", ppo_determinisitc_return)
-        logz.log_tabular("Condition", "PPO_DETERMINISTIC")
-        logz.dump_tabular()
-
-        # log mpc
-        if MPC:
-            logz.log_tabular("TimeSoFar", time.time() - start)
-            logz.log_tabular("TimeEp", time.time() - tstart)
-            logz.log_tabular("Iteration", itr)
-            logz.log_tabular("AverageReturn", np.mean(mpc_returns))
-            logz.log_tabular("StdReturn", np.std(mpc_returns))
-            logz.log_tabular("MaxReturn", np.max(mpc_returns))
-            logz.log_tabular("MinReturn", np.min(mpc_returns))
-            logz.log_tabular("EpLenMean", np.mean(ep_lengths))
-            logz.log_tabular("EpLenStd", np.std(ep_lengths))
-            logz.log_tabular("TimestepsSoFar", timesteps_so_far)
-            logz.log_tabular("Condition", "MPC_PPO")
-            logz.dump_tabular()
-
-        if FLAGS.mpc_rand:
-            logz.log_tabular("TimeSoFar", time.time() - start)
-            logz.log_tabular("TimeEp", time.time() - tstart)
-            logz.log_tabular("Iteration", itr)
-            logz.log_tabular("AverageReturn", np.mean(mpc_rand_returns))
-            logz.log_tabular("StdReturn", np.std(mpc_rand_returns))
-            logz.log_tabular("MaxReturn", np.max(mpc_rand_returns))
-            logz.log_tabular("MinReturn", np.min(mpc_rand_returns))
-            logz.log_tabular("EpLenMean", np.mean(ep_lengths))
-            logz.log_tabular("EpLenStd", np.std(ep_lengths))
-            logz.log_tabular("TimestepsSoFar", timesteps_so_far)
-            logz.log_tabular("Condition", "MPC_RAND")
-            logz.dump_tabular()
-
-
-        # logz.pickle_tf_vars()
-        tstart = time.time()
-
-        ################### TF Summaries
-        summary_str = sess.run(merged_summary, feed_dict={
-                  ppo_return_op:np.mean(returns),
-                  mpc_return_op:np.mean(mpc_returns),
-                  model_loss_op:model_loss,
-                  ppo_std_op:ppo_std,
-                  reward_loss_op:reward_loss,
-                  mpc_std_op:mpc_std,
-                  })
-        summary_writer.add_summary(summary_str, itr)
-        summary_writer.flush()
-
-
-        ################ TF SAVE
-        if itr % FLAGS.SAVE_ITER == 0 and itr != 0:
-            save_path = saver.save(sess, logdir+"/model.ckpt")
-            print("Model saved in path: %s" % save_path)
-
-def build_summary_ops(logdir, env):
-
-    summary_writer = tf.summary.FileWriter(logdir)
-
-    ppo_return_op =  tf.placeholder(tf.float32)
-    mpc_return_op =  tf.placeholder(tf.float32)
-    model_loss_op = tf.placeholder(tf.float32)
-    reward_loss_op = tf.placeholder(tf.float32)
-
-    ppo_std_op =  tf.placeholder(tf.float32, shape=(env.action_space.shape))
-    mpc_std_op = tf.placeholder(tf.float32)
-
-    tf.summary.scalar('mean_ppo_return', ppo_return_op)
-    tf.summary.scalar('mean_mpc_return', mpc_return_op)
-    tf.summary.scalar('model_loss', model_loss_op)
-    tf.summary.scalar('reward_loss', reward_loss_op)
-    tf.summary.histogram('ppo_action_std', ppo_std_op)
-    tf.summary.scalar('mpc_action_std', mpc_std_op)
-
-    merged_summary = tf.summary.merge_all()
-
-    return merged_summary, summary_writer, ppo_return_op, mpc_return_op, model_loss_op, reward_loss_op, ppo_std_op, mpc_std_op
+    # ################# PPO deterministic evaluation
+    # ppo_determinisitc_return = policy_net_eval(sess, env, policy_nn, env_horizon, stochastic=False)
 
 
 
