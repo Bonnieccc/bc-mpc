@@ -15,13 +15,14 @@ print("states_predict", states_predict.shape)
 print("rewards_true", rewards_true.shape)
 print("rewards_predict", rewards_predict.shape)
 
-for i in range(states_true.shape[1]):
-    print("state ", i)
-    idx = i
-    plt.plot(states_true[:, idx])
-    plt.plot(states_predict[:, idx], '--')
-    plt.show()
+# for i in range(states_true.shape[1]):
+#     print("state ", i)
+#     idx = i
+#     plt.plot(states_true[:, idx])
+#     plt.plot(states_predict[:, idx], '--')
+#     plt.show()
 
 plt.plot(rewards_true)
 plt.plot(rewards_predict, '--')
+plt.title("reward")
 plt.show()

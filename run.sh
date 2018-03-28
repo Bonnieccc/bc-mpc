@@ -22,13 +22,13 @@
 
 # done
 
-for seed in 1 2
+for seed in 1 2 3
 do
-    MPC_EXP=0.05
+    mpc_horizon=30
     ppo_lr=1e-4
-    name=mpc_ppo_expself_r_debug_s_${seed}
+    name=mpc_ppo_r_h_${mpc_horizon}_expself_s_${seed}
 
-    nohup python -u train_mpc_ppo.py --MPC_EXP=${MPC_EXP} --SELFEXP=True --exp_name=${name} --mpc_rand=False --seed=${seed} --LEARN_REWARD=True --mpc=True --ppo=True --ppo_lr=${ppo_lr} --LAYER_NORM=True&
+    nohup python -u train_mpc_ppo.py --mpc_horizon=${mpc_horizon} --SELFEXP=True --exp_name=${name} --mpc_rand=False --seed=${seed} --LEARN_REWARD=True --mpc=True --ppo=True --ppo_lr=${ppo_lr} &
 
 done
 

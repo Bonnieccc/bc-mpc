@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_boolean('LEARN_REWARD', False, "Learn reward function or use
 tf.app.flags.DEFINE_integer('MPC_AUG_GAP', 1, "How many iters to use mpc augumentation ")
 tf.app.flags.DEFINE_integer('SAVE_ITER', 1, "In how many iterations save model once")
 tf.app.flags.DEFINE_boolean('LOAD_MODEL', True, """Load model or not""")
-tf.app.flags.DEFINE_boolean('SELFEXP', False, """Use external exploration or ppo's own exp""")
+tf.app.flags.DEFINE_boolean('SELFEXP', True, """Use external exploration or ppo's own exp""")
 tf.app.flags.DEFINE_float('MPC_EXP', 0.5, 'MPC external explore ratio [0, 1]')
 
 
@@ -77,7 +77,7 @@ tf.app.flags.DEFINE_integer('ep_len', 1000, '')
 tf.app.flags.DEFINE_integer('n_layers', 2, '')
 tf.app.flags.DEFINE_integer('size', 256, '')
 # MPC Controller
-tf.app.flags.DEFINE_integer('mpc_horizon', 7, '')
+tf.app.flags.DEFINE_integer('mpc_horizon', 30, '')
 
 tf.app.flags.DEFINE_boolean('mpc', False, 'mpc or not')
 tf.app.flags.DEFINE_boolean('mpc_rand', False, 'mpc_rand or not')

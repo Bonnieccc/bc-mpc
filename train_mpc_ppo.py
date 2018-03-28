@@ -283,6 +283,7 @@ def train(env,
         ppo_data_buffer.clear()
 
         # ppo_seg = traj_segment_generator_ppo(policy_nn, env, env_horizon)
+        ppo_mpc = False
         mpc = False
         ppo_seg = traj_segment_generator(policy_nn, mpc_controller, mpc_ppo_controller, bc_data_buffer, env, mpc, ppo_mpc, env_horizon)
 
